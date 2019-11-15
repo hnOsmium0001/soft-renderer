@@ -11,4 +11,6 @@ add_executable(soft_renderer
   src/tgaimage.cpp
   src/window.hpp
   src/window.cpp
+  src/render.hpp
+  src/render.cpp
 )
