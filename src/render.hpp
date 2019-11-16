@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "tgaimage.hpp"
+#include "../external/tgaimage.hpp"
 
 // Stands for "Soft RenDerer"
 namespace srd {

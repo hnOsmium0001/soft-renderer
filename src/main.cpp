@@ -1,5 +1,6 @@
 #include <iostream>
-#include "tgaimage.hpp"
+#include <vector>
+#include "../external/tgaimage.hpp"
 #include "render.hpp"
 
 const TGAColor white = TGAColor(255, 255, 255, 255);

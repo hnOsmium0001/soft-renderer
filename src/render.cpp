@@ -1,7 +1,7 @@
+#include <vector>
 #include <algorithm>
-#include "tgaimage.hpp"
+#include "../external/tgaimage.hpp"
 #include "render.hpp"
-#include <iostream>
 
 srd::FrameBuffer::FrameBuffer(int width, int height, int defaultZ)
 : _image{width, height, TGAImage::RGB}, _zBuffer(width * height, defaultZ) {

@@ -1,6 +1,12 @@
-/*
+# Output directories
+bin/
+lib/
 
-!src/
-!.gitignore
+# CMake stuff
+CMakeFiles/
+CMake*.txt
 !CMakeLists.txt
-!run.sh
+*.cmake
+
+Makefile
+*.kdev4
