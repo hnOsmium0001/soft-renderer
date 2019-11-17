@@ -56,14 +56,14 @@ void srd::DrawLine(Vec3i v1, Vec3i v2, FrameBuffer& frame, TGAColor color) {
   }
 }
 void srd::DrawTriangle(Vec3i v1, Vec3i v2, Vec3i v3, FrameBuffer& frame, TGAColor color) {
-  // Stands for "Boudning Box Vertex N"
-  Vec2i bbv1 {std::min({v1.x, v2.x}), std::min({v1.y, v2.y})};
-  Vec2i bbv2 {std::max({v1.x, v2.x}), std::max({v1.y, v2.y})};
+  // Stands for "Boudning Box Vertex 1/2"
+  Vec2i bbv1 {std::min({v1.x, v2.x, v3.x}), std::min({v1.y, v2.y, v3.y})};
+  Vec2i bbv2 {std::max({v1.x, v2.x, v3.x}), std::max({v1.y, v2.y, v3.y})};
   
   for(int y = bbv1.y; y <= bbv2.y; ++y) {
     for(int x = bbv1.x; x <= bbv2.x; ++x) {
-      // TODO lerp z
-      if(srd::PtInTriangle({x, y, v1.z}, v1, v2, v3)) {
+      if(srd::PtInTriangle({x, y, 0}, v1, v2, v3)) {
+          // TODO lerp z
         frame.Set(x, y, v1.z, color);
       }
     }
