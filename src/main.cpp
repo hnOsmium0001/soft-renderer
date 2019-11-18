@@ -8,29 +8,28 @@
 
 const TGAColor white(255, 255, 255, 255);
 const TGAColor red(255, 0, 0, 255);
+const TGAColor green(0, 255, 0, 255);
+const TGAColor blue(0, 0, 255, 255);
 
-int RandIntRnage(int min, int max) {
-  static bool first = true;
-  if (first) {  
-    std::srand(time(nullptr));
-    first = false;
-  }
-  return min + rand() % ((max + 1) - min);
+void DrawDepthTestingDemo(srd::FrameBuffer& frame) {
+  std::vector<Vec3i> verts {
+    {20, 10, 5}, {40, 10, 5}, {50, 30, 5}, {30, 50, 5}, {10, 30, 5}
+  };
+  srd::DrawPolygon(verts, frame, red);
+  srd::DrawTriangle({10, 10, 1}, {90, 10, 1}, {90, 90, 1}, frame, white);
 }
+void Draw3DTrianglesTopDown(srd::FrameBuffer& frame) {
+  srd::DrawTriangle({200, 120, 700}, {200, 680, 700}, {440, 400, 640}, frame, green);
+  srd::DrawTriangle({500, 40, 300}, {500, 760, 300}, {380, 400, 720}, frame, blue);
+  srd::DrawTriangle({700, 300, 660}, {700, 500, 660}, {100, 400, 40}, frame, red);
+}
+
 Vec3i CalcAbsCoord(Vec3f v, srd::FrameBuffer& frame) {
   return {
     static_cast<int>((v.x + 1) * frame.width() / 2),
     static_cast<int>((v.y + 1) * frame.height() / 2),
     static_cast<int>((v.z + 1) * frame.width() / 2)
   };
-}
-
-void DrawDepthTestingDemo(srd::FrameBuffer& frame) {
-  std::vector<Vec3i> verts {
-    {20, 10, 0}, {40, 10, 0}, {50, 30, 0}, {30, 50, 0}, {10, 30, 0}
-  };
-  srd::DrawPolygon(verts, frame, red);
-  srd::DrawTriangle({10, 10, -1}, {90, 10, -1}, {90, 90, -1}, frame, white);
 }
 void DrawWireframeModel(srd::FrameBuffer& frame) {
   Model model("obj/african_head.obj");
@@ -54,13 +53,13 @@ void DrawRandomColorModel(srd::FrameBuffer& frame) {
       Vec3i v1 = CalcAbsCoord(model.vert(face[0]), frame);
       Vec3i v2 = CalcAbsCoord(model.vert(face[1]), frame);
       Vec3i v3 = CalcAbsCoord(model.vert(face[2]), frame);
-      TGAColor color(RandIntRnage(0, 256), RandIntRnage(0, 256), RandIntRnage(0, 256), 255);
+      TGAColor color(srd::RandIntRnage(0, 256), srd::RandIntRnage(0, 256), srd::RandIntRnage(0, 256), 255);
       srd::DrawTriangle(v1, v2, v3, frame, color);
   }
 }
-void DrawSurfaceNormalColorModel(srd::FrameBuffer& frame, bool correctGamma) {
-  frame.SetDepthTest(false);
-
+void DrawSurfaceNormalColorModel(srd::FrameBuffer& frame, bool depthTest, bool correctGamma) {
+  frame.SetDepthTest(depthTest);
+  
   Vec3f lightVec(0, 0, -1);
   Model model("obj/african_head.obj");
   for(int i = 0; i < model.nfaces(); ++i) {
@@ -87,14 +86,19 @@ void DrawSurfaceNormalColorModel(srd::FrameBuffer& frame, bool correctGamma) {
 
 int main(int argc, char** argv) {
   std::cout << "Soft Renderer" << std::endl;
-  
-  srd::FrameBuffer frame(800, 800, -255);
-//   DrawDepthTestingDemo(frame);
-//   DrawWireframeModel(frame);
-//   DrawRandomColorModel(frame);
-//   DrawSurfaceNormalColorModel(frame, false);
-//   DrawSurfaceNormalColorModel(frame, true);
+  srd::Camera cam;
+
+  srd::FrameBuffer frame(800, 800);
+  // DrawDepthTestingDemo(frame);
+  // Draw3DTrianglesTopDown(frame);
+  // DrawWireframeModel(frame);
+  // DrawRandomColorModel(frame);
+  // DrawSurfaceNormalColorModel(frame, true, false);
+  // DrawSurfaceNormalColorModel(frame, false, true);
+  DrawSurfaceNormalColorModel(frame, true, true);
   frame.Write("./bin/output.tga");
-  
+
+  srd::debug::DumpZBufferTGA(frame);
+
   return 0;
 }

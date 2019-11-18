@@ -4,8 +4,12 @@
 #include "../external/geometry.hpp"
 #include "render.hpp"
 
+srd::Camera::Camera(Vec3f pos, Vec3f angle) 
+: _pos(pos), _angle(angle) {
+}
+
 srd::FrameBuffer::FrameBuffer(int width, int height, int defaultZ)
-: _image{width, height, TGAImage::RGB}, _zBuffer(width * height, defaultZ) {
+: _cam{}, _image{width, height, TGAImage::RGB}, _zBuffer(width * height, defaultZ) {
 }
 void srd::FrameBuffer::Write(const std::string path) {
   _image.flip_vertically();
@@ -21,6 +25,9 @@ void srd::FrameBuffer::Set(int x, int y, int z, TGAColor color) {
     _image.set(x, y, color);
     if(enableDepthWrite) _zBuffer[i] = z;
   }
+}
+void srd::FrameBuffer::Set(Vec3i v, TGAColor color) {
+  this->Set(v.x, v.y, v.z, color);
 }
 
 Vec3i& srd::PtMin(Vec3i& p1, Vec3i& p2) {
@@ -62,9 +69,13 @@ void srd::DrawTriangle(Vec3i v1, Vec3i v2, Vec3i v3, FrameBuffer& frame, TGAColo
   
   for(int y = bbv1.y; y <= bbv2.y; ++y) {
     for(int x = bbv1.x; x <= bbv2.x; ++x) {
+      Vec3f bc = srd::Barycentric({x, y, 0}, v1, v2, v3);
+      float z =
+        v1.z * bc.x +
+        v2.z * bc.y +
+        v3.z * bc.z;
       if(srd::PtInTriangle({x, y, 0}, v1, v2, v3)) {
-          // TODO lerp z
-        frame.Set(x, y, v1.z, color);
+        frame.Set(x, y, z, color);
       }
     }
   }
@@ -72,13 +83,18 @@ void srd::DrawTriangle(Vec3i v1, Vec3i v2, Vec3i v3, FrameBuffer& frame, TGAColo
 void srd::DrawPolygon(std::vector<Vec3i> verts, FrameBuffer& frame, TGAColor color) {
   if(verts.size() < 3) return;
   
-  auto lastOne {verts[1]};
+  auto lastOne(verts[1]);
   for(auto it = std::next(verts.begin(), 2); it != verts.end(); ++it) {
     srd::DrawTriangle(verts[0], lastOne, *it, frame, color);
     lastOne = *it;
   }
 }
 
+Vec3f srd::Barycentric(Vec3i pt, Vec3i v1, Vec3i v2, Vec3i v3) {
+  Vec3f u = Vec3f(v3.x-v1.x, v2.x-v1.x, v1.x-pt.x) ^ Vec3f(v3.y-v1.y, v2.y-v1.y, v1.y-pt.y);
+  if (std::abs(u.z)<1) return Vec3f(-1,1,1);
+  return Vec3f(1.f-(u.x+u.y)/u.z, u.y/u.z, u.x/u.z); 
+}
 
 float Sign(Vec3i p1, Vec3i p2, Vec3i p3) {
   return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
@@ -90,4 +106,47 @@ bool srd::PtInTriangle(Vec3i pt, Vec3i v1, Vec3i v2, Vec3i v3) {
   bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
   bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
   return !(hasNeg && hasPos);
+}
+
+template <class N>
+N srd::Map(N value, N fromMin, N fromMax, N toMin, N toMax)  {
+  return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
+}
+int srd::RandIntRnage(int min, int max) {
+  static bool first = true;
+  if (first) {  
+    std::srand(time(nullptr));
+    first = false;
+  }
+  return min + rand() % ((max + 1) - min);
+}
+
+void srd::debug::DumpZBufferConsole(srd::FrameBuffer& target) {
+  for (int x = 0; x < target.width(); ++x) {
+    for (int y = 0; y < target.height(); ++y) {
+      int z = target.zBuffer()[x + y * target.width()];
+      if(z == -255) continue;
+      std::cout << z << " ";
+    }
+    std::cout << "\n";
+  }
+}
+void srd::debug::DumpZBufferTGA(srd::FrameBuffer& target) {
+  srd::FrameBuffer frame(target.width(), target.height(), 0);
+  frame.SetDepthTest(false);
+
+  int maxZ = -2147483647;
+  for (int x = 0; x < target.width(); ++x) {
+    for (int y = 0; y < target.height(); ++y) {
+      maxZ = std::max(maxZ, target.zBuffer()[x + y * target.width()]);
+    }
+  }
+  for (int x = 0; x < target.width(); ++x) {
+    for (int y = 0; y < target.height(); ++y) {
+      int z = target.zBuffer()[x + y * target.width()];
+      int c = srd::Map(z, 0, maxZ, 0, 255);
+      frame.Set(x, y, 0, TGAColor(c, c, c, 255));
+    }
+  }
+  frame.Write("./bin/zdump.tga");
 }

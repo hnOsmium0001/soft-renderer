@@ -23,7 +23,8 @@ Model::Model(const char *filename) : verts_(), faces_() {
       std::vector<int> f;
       int itrash, idx;
       iss >> trash;
-      while (iss >> idx >> trash >> itrash >> trash >> itrash) {
+      // while (iss >> idx >> trash >> itrash >> trash >> itrash) {
+      while (iss >> idx) {
         idx--; // in wavefront obj all indices start at 1, not zero
         f.push_back(idx);
       }
