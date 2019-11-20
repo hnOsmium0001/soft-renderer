@@ -1,20 +1,24 @@
+#include <cassert>
+#include <iostream>
 #include <vector>
 #include <algorithm>
-#include "../external/tgaimage.hpp"
-#include "../external/geometry.hpp"
+#include <cstdint>
+#include "../external/custom/tgaimage.hpp"
 #include "render.hpp"
 
-srd::Camera::Camera(Vec3f pos, Vec3f angle) 
+srd::Camera::Camera(Eigen::Vector3f pos, Eigen::Vector3f angle) 
 : _pos(pos), _angle(angle) {
 }
 
 srd::FrameBuffer::FrameBuffer(int width, int height, int defaultZ)
 : _cam{}, _image{width, height, TGAImage::RGB}, _zBuffer(width * height, defaultZ) {
 }
+
 void srd::FrameBuffer::Write(const std::string path) {
   _image.flip_vertically();
   _image.write_tga_file(path.c_str());
 }
+
 void srd::FrameBuffer::Set(int x, int y, int z, TGAColor color) {
   if (x < 0 || y < 0 || x >= width() || y >= height()) {
     return;
@@ -26,35 +30,42 @@ void srd::FrameBuffer::Set(int x, int y, int z, TGAColor color) {
     if(enableDepthWrite) _zBuffer[i] = z;
   }
 }
-void srd::FrameBuffer::Set(Vec3i v, TGAColor color) {
-  this->Set(v.x, v.y, v.z, color);
+
+void srd::FrameBuffer::Set(const Eigen::Vector3i& v, TGAColor color) {
+  this->Set(v.x(), v.y(), v.z(), color);
 }
 
-Vec3i& srd::PtMin(Vec3i& p1, Vec3i& p2) {
-  if(p1.x > p2.x) return p2;
-  if(p1.y > p2.y) return p2;
+Eigen::Vector3i& srd::PtMin(Eigen::Vector3i& p1, Eigen::Vector3i& p2) {
+  if(p1.x() > p2.x()) return p2;
+  if(p1.y() > p2.y()) return p2;
   return p1;
 }
-Vec3i& srd::PtMax(Vec3i& p1, Vec3i& p2) {
-  if(p1.x < p2.x) return p2;
-  if(p1.y < p2.y) return p2;
+Eigen::Vector3i& srd::PtMax(Eigen::Vector3i& p1, Eigen::Vector3i& p2) {
+  if(p1.x() < p2.x()) return p2;
+  if(p1.y() < p2.y()) return p2;
   return p1;
 }
 
-void srd::DrawLine(Vec3i v1, Vec3i v2, FrameBuffer& frame, TGAColor color) {
+void srd::DrawLine(
+  Eigen::Vector3i v1,
+  Eigen::Vector3i v2,
+  FrameBuffer& frame,
+  TGAColor color
+) {
+  // Swapping is safe because pass-by-value
   bool steep = false;
-  if (std::abs(v1.x - v2.x) < std::abs(v1.y - v2.y)) {
-    std::swap(v1.x, v1.y); 
-    std::swap(v2.x, v2.y); 
+  if (std::abs(v1.x() - v2.x()) < std::abs(v1.y() - v2.y())) {
+    std::swap(v1.x(), v1.y()); 
+    std::swap(v2.x(), v2.y()); 
     steep = true;
   }
-  if(v1.x > v2.x) {
+  if(v1.x() > v2.x()) {
     std::swap(v1, v2);
   }
-  for(int x = v1.x; x <= v2.x; ++x) {
-    float t = (x - v1.x) / static_cast<float>(v2.x - v1.x);
-    int y = v1.y * (1.0 - t) + v2.y * t;
-    int z = v1.z * (1.0 - t) + v2.z * t;
+  for(int x = v1.x(); x <= v2.x(); ++x) {
+    float t = (x - v1.x()) / static_cast<float>(v2.x() - v1.x());
+    int y = v1.y() * (1.0 - t) + v2.y() * t;
+    int z = v1.z() * (1.0 - t) + v2.z() * t;
     if(steep) {
       frame.Set(y ,x, z, color);
     } else {
@@ -62,26 +73,68 @@ void srd::DrawLine(Vec3i v1, Vec3i v2, FrameBuffer& frame, TGAColor color) {
     }
   }
 }
-void srd::DrawTriangle(Vec3i v1, Vec3i v2, Vec3i v3, FrameBuffer& frame, TGAColor color) {
+
+void srd::DrawTriangle(
+  const Eigen::Vector3i& v1,
+  const Eigen::Vector3i& v2,
+  const Eigen::Vector3i& v3,
+  FrameBuffer& frame,
+  TGAColor color
+) {
   // Stands for "Boudning Box Vertex 1/2"
-  Vec2i bbv1 {std::min({v1.x, v2.x, v3.x}), std::min({v1.y, v2.y, v3.y})};
-  Vec2i bbv2 {std::max({v1.x, v2.x, v3.x}), std::max({v1.y, v2.y, v3.y})};
+  Eigen::Vector2i bbv1 {std::min({v1.x(), v2.x(), v3.x()}), std::min({v1.y(), v2.y(), v3.y()})};
+  Eigen::Vector2i bbv2 {std::max({v1.x(), v2.x(), v3.x()}), std::max({v1.y(), v2.y(), v3.y()})};
   
-  for(int y = bbv1.y; y <= bbv2.y; ++y) {
-    for(int x = bbv1.x; x <= bbv2.x; ++x) {
-      Vec3f bc = srd::Barycentric({x, y, 0}, v1, v2, v3);
+  for(int y = bbv1.y(); y <= bbv2.y(); ++y) {
+    for(int x = bbv1.x(); x <= bbv2.x(); ++x) {
+      Eigen::Vector3f bc = srd::Barycentric({x, y, 0}, v1, v2, v3);
       float z =
-        v1.z * bc.x +
-        v2.z * bc.y +
-        v3.z * bc.z;
+        v1.z() * bc.x() +
+        v2.z() * bc.y() +
+        v3.z() * bc.z();
       if(srd::PtInTriangle({x, y, 0}, v1, v2, v3)) {
         frame.Set(x, y, z, color);
       }
     }
   }
 }
-void srd::DrawPolygon(std::vector<Vec3i> verts, FrameBuffer& frame, TGAColor color) {
-  if(verts.size() < 3) return;
+
+void srd::DrawTriangles(
+  const std::vector<Eigen::Vector3i> &verts,
+  const std::vector<int> indices,
+  FrameBuffer &frame,
+  TGAColor color
+) {
+  assert(verts.size() >= 3);
+  assert(indices.size() % 3 == 0);
+
+  for(int i = 0; i < indices.size(); i += 3) {
+    srd::DrawTriangle(verts[indices[i]], verts[indices[i + 1]], verts[indices[i + 2]], frame, color);
+  }
+}
+
+void srd::DrawTriangleStrip(
+  const std::vector<Eigen::Vector3i> &verts,
+  FrameBuffer &frame,
+  TGAColor color
+) {
+  assert(verts.size() >= 3);
+
+  auto lastOne(verts[0]);
+  auto lastTwo(verts[1]);
+  for(auto it = std::next(verts.begin(), 2); it != verts.end(); ++it) {
+    srd::DrawTriangle(lastOne, lastTwo, *it, frame, color);
+    lastTwo = lastOne;
+    lastOne = *it;
+  }
+}
+
+void srd::DrawPolygon(
+  const std::vector<Eigen::Vector3i>& verts,
+  FrameBuffer& frame,
+  TGAColor color
+) {
+  assert(verts.size() >= 3);
   
   auto lastOne(verts[1]);
   for(auto it = std::next(verts.begin(), 2); it != verts.end(); ++it) {
@@ -90,29 +143,12 @@ void srd::DrawPolygon(std::vector<Vec3i> verts, FrameBuffer& frame, TGAColor col
   }
 }
 
-Vec3f srd::Barycentric(Vec3i pt, Vec3i v1, Vec3i v2, Vec3i v3) {
-  Vec3f u = Vec3f(v3.x-v1.x, v2.x-v1.x, v1.x-pt.x) ^ Vec3f(v3.y-v1.y, v2.y-v1.y, v1.y-pt.y);
-  if (std::abs(u.z)<1) return Vec3f(-1,1,1);
-  return Vec3f(1.f-(u.x+u.y)/u.z, u.y/u.z, u.x/u.z); 
-}
-
-float Sign(Vec3i p1, Vec3i p2, Vec3i p3) {
-  return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-}
-bool srd::PtInTriangle(Vec3i pt, Vec3i v1, Vec3i v2, Vec3i v3) {
-  float d1 = Sign(pt, v1, v2);
-  float d2 = Sign(pt, v2, v3);
-  float d3 = Sign(pt, v3, v1);
-  bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-  bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-  return !(hasNeg && hasPos);
-}
-
 template <class N>
 N srd::Map(N value, N fromMin, N fromMax, N toMin, N toMax)  {
   return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
 }
-int srd::RandIntRnage(int min, int max) {
+
+int srd::RandInt(int min, int max) {
   static bool first = true;
   if (first) {  
     std::srand(time(nullptr));
@@ -121,32 +157,68 @@ int srd::RandIntRnage(int min, int max) {
   return min + rand() % ((max + 1) - min);
 }
 
+Eigen::Vector3f srd::Barycentric(
+  const Eigen::Vector3i& pt,
+  const Eigen::Vector3i& v1,
+  const Eigen::Vector3i& v2,
+  const Eigen::Vector3i& v3
+) {
+  Eigen::Vector3f u =
+           Eigen::Vector3f(v3.x() - v1.x(), v2.x() - v1.x(), v1.x() - pt.x())
+    .cross(Eigen::Vector3f(v3.y() - v1.y(), v2.y() - v1.y(), v1.y() - pt.y()));
+  if (std::abs(u.z()) < 1)
+    return Eigen::Vector3f(-1, 1, 1);
+  return Eigen::Vector3f(1.0f - (u.x() + u.y()) / u.z(), u.y() / u.z(), u.x() / u.z());
+}
+
+float Sign(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, Eigen::Vector3i p3) {
+  return (p1.x() - p3.x()) * (p2.y() - p3.y()) - (p2.x() - p3.x()) * (p1.y() - p3.y());
+}
+bool srd::PtInTriangle(
+  const Eigen::Vector3i& pt,
+  const Eigen::Vector3i& v1,
+  const Eigen::Vector3i& v2,
+  const Eigen::Vector3i& v3
+) {
+  float d1 = Sign(pt, v1, v2);
+  float d2 = Sign(pt, v2, v3);
+  float d3 = Sign(pt, v3, v1);
+  bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+  bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+  return !(hasNeg && hasPos);
+}
+
 void srd::debug::DumpZBufferConsole(srd::FrameBuffer& target) {
   for (int x = 0; x < target.width(); ++x) {
     for (int y = 0; y < target.height(); ++y) {
       int z = target.zBuffer()[x + y * target.width()];
-      if(z == -255) continue;
       std::cout << z << " ";
     }
     std::cout << "\n";
   }
 }
+
 void srd::debug::DumpZBufferTGA(srd::FrameBuffer& target) {
   srd::FrameBuffer frame(target.width(), target.height(), 0);
   frame.SetDepthTest(false);
+  frame.setDepthWrite(false);
 
-  int maxZ = -2147483647;
-  for (int x = 0; x < target.width(); ++x) {
-    for (int y = 0; y < target.height(); ++y) {
-      maxZ = std::max(maxZ, target.zBuffer()[x + y * target.width()]);
-    }
-  }
+  int32_t minZ = INT32_MAX;
+  int32_t maxZ = INT32_MIN;
   for (int x = 0; x < target.width(); ++x) {
     for (int y = 0; y < target.height(); ++y) {
       int z = target.zBuffer()[x + y * target.width()];
-      int c = srd::Map(z, 0, maxZ, 0, 255);
+      minZ = std::min(minZ, z);
+      maxZ = std::max(maxZ, z);
+    }
+  }
+  if(minZ == maxZ) return;
+  for (int x = 0; x < target.width(); ++x) {
+    for (int y = 0; y < target.height(); ++y) {
+      int z = target.zBuffer()[x + y * target.width()];
+      int c = srd::Map(z, minZ, maxZ, 0, 255);
       frame.Set(x, y, 0, TGAColor(c, c, c, 255));
     }
   }
-  frame.Write("./bin/zdump.tga");
+  frame.Write("./build/zdump.tga");
 }

@@ -1,18 +1,18 @@
 #pragma once
 
 #include <vector>
-#include "../external/tgaimage.hpp"
-#include "../external/geometry.hpp"
+#include "../external/Eigen/Dense"
+#include "../external/custom/tgaimage.hpp"
 
 // Stands for "Soft RenDerer"
 namespace srd {
 
   class Camera {
   public:
-    Vec3f _pos;
-    Vec3f _angle;
+    Eigen::Vector3f _pos;
+    Eigen::Vector3f _angle;
 
-    Camera(Vec3f pos = {0, 0, 0}, Vec3f angle = {0, 0, 0});
+    Camera(Eigen::Vector3f pos = {0, 0, 0}, Eigen::Vector3f angle = {0, 0, 0});
   };
   
   class FrameBuffer {
@@ -28,7 +28,7 @@ namespace srd {
     FrameBuffer(int width, int height, int defaultZ=0);
     void Write(const std::string path);
     void Set(int x, int y, int z, TGAColor color);
-    void Set(Vec3i v, TGAColor color);
+    void Set(const Eigen::Vector3i& v, TGAColor color);
     
     void SetDepthTest(bool enable) { enableDepthTest = enable; }
     void setDepthWrite(bool enable) { enableDepthWrite = enable; }
@@ -42,20 +42,21 @@ namespace srd {
     const std::vector<int>& zBuffer() const { return this->_zBuffer; }
   };
 
-  Vec3i& PtMin(Vec3i& p1, Vec3i& p2);
-  Vec3i& PtMax(Vec3i& p1, Vec3i& p2);
+  Eigen::Vector3i& PtMin(Eigen::Vector3i& p1, Eigen::Vector3i& p2);
+  Eigen::Vector3i& PtMax(Eigen::Vector3i& p1, Eigen::Vector3i& p2);
   
-  void DrawLine(Vec3i v1, Vec3i v2, FrameBuffer& frame, TGAColor color);
-  void DrawTriangle(Vec3i v1, Vec3i v2, Vec3i v3, FrameBuffer& frame, TGAColor color);
-  void DrawPolygon(std::vector<Vec3i> verts, FrameBuffer& frame, TGAColor color);
+  void DrawLine(Eigen::Vector3i v1, Eigen::Vector3i v2, FrameBuffer& frame, TGAColor color);
+  void DrawTriangle(const Eigen::Vector3i& v1, const Eigen::Vector3i& v2, const Eigen::Vector3i& v3, FrameBuffer& frame, TGAColor color);
+  void DrawTriangles(const std::vector<Eigen::Vector3i>& verts, const std::vector<int> indices, FrameBuffer& frame, TGAColor color);
+  void DrawTriangleStrip(const std::vector<Eigen::Vector3i>& verts, FrameBuffer& frame, TGAColor color);
+  void DrawPolygon(const std::vector<Eigen::Vector3i>& verts, FrameBuffer& frame, TGAColor color);
   
-  Vec3f Barycentric(Vec3i pt, Vec3i v1, Vec3i v2, Vec3i v3);
-  bool PtInTriangle(Vec3i pt, Vec3i v1, Vec3i v2, Vec3i v3);
-
   template <class N>
   N Map(N value, N fromMin, N fromMax, N toMin, N toMax);
 
-  int RandIntRnage(int min, int max);
+  int RandInt(int min, int max);
+  Eigen::Vector3f Barycentric(const Eigen::Vector3i& pt, const Eigen::Vector3i& v1, const Eigen::Vector3i& v2, const Eigen::Vector3i& v3);
+  bool PtInTriangle(const Eigen::Vector3i& pt, const Eigen::Vector3i& v1, const Eigen::Vector3i& v2, const Eigen::Vector3i& v3);
 
   namespace debug {
     

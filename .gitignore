@@ -1,6 +1,6 @@
 # Output directories
-bin/
-lib/
+build/
+tmp/
 
 # CMake stuff
 CMakeFiles/
@@ -10,3 +10,6 @@ CMake*.txt
 
 Makefile
 *.kdev4
+
+# Core dumps
+core.*
