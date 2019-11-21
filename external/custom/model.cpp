@@ -23,8 +23,7 @@ Model::Model(const char *filename) : verts_(), faces_() {
       std::vector<int> f;
       int itrash, idx;
       iss >> trash;
-      // while (iss >> idx >> trash >> itrash >> trash >> itrash) {
-      while (iss >> idx) {
+      while (iss >> idx >> trash >> itrash >> trash >> itrash) {
         idx--; // in wavefront obj all indices start at 1, not zero
         f.push_back(idx);
       }
@@ -45,10 +44,16 @@ int Model::nfaces() {
   return (int)faces_.size();
 }
 
+Eigen::Vector3f Model::vert(int i) {
+  return verts_[i];
+}
+const Eigen::Vector3f& Model::vert(int i) const {
+  return verts_[i];
+}
+
 std::vector<int> Model::face(int idx) {
   return faces_[idx];
 }
-
-Eigen::Vector3f Model::vert(int i) {
-  return verts_[i];
+const std::vector<int>& Model::face(int idx) const {
+  return faces_[idx];
 }

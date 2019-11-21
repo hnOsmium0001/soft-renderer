@@ -6,7 +6,7 @@
 #include "../external/custom/tgaimage.hpp"
 #include "render.hpp"
 
-srd::Camera::Camera(Eigen::Vector3f pos, Eigen::Vector3f angle) 
+srd::Camera::Camera(Eigen::Vector3f pos, Eigen::Vector3f angle)
 : _pos(pos), _angle(angle) {
 }
 
@@ -23,7 +23,7 @@ void srd::FrameBuffer::Set(int x, int y, int z, TGAColor color) {
   if (x < 0 || y < 0 || x >= width() || y >= height()) {
     return;
   }
-  
+
   const int i = x + y * width();
   if(!enableDepthTest || _zBuffer[i] <= z) {
     _image.set(x, y, color);
@@ -35,28 +35,31 @@ void srd::FrameBuffer::Set(const Eigen::Vector3i& v, TGAColor color) {
   this->Set(v.x(), v.y(), v.z(), color);
 }
 
-Eigen::Vector3i& srd::PtMin(Eigen::Vector3i& p1, Eigen::Vector3i& p2) {
+const Eigen::Vector3i& srd::PtMin(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2) {
   if(p1.x() > p2.x()) return p2;
   if(p1.y() > p2.y()) return p2;
   return p1;
 }
-Eigen::Vector3i& srd::PtMax(Eigen::Vector3i& p1, Eigen::Vector3i& p2) {
+const Eigen::Vector3i& srd::PtMax(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2) {
   if(p1.x() < p2.x()) return p2;
   if(p1.y() < p2.y()) return p2;
   return p1;
 }
 
 void srd::DrawLine(
-  Eigen::Vector3i v1,
-  Eigen::Vector3i v2,
+  const Eigen::Vector3i& v1In,
+  const Eigen::Vector3i& v2In,
   FrameBuffer& frame,
   TGAColor color
 ) {
+  Eigen::Vector3i v1(v1In);
+  Eigen::Vector3i v2(v2In);
+
   // Swapping is safe because pass-by-value
   bool steep = false;
   if (std::abs(v1.x() - v2.x()) < std::abs(v1.y() - v2.y())) {
-    std::swap(v1.x(), v1.y()); 
-    std::swap(v2.x(), v2.y()); 
+    std::swap(v1.x(), v1.y());
+    std::swap(v2.x(), v2.y());
     steep = true;
   }
   if(v1.x() > v2.x()) {
@@ -84,7 +87,7 @@ void srd::DrawTriangle(
   // Stands for "Boudning Box Vertex 1/2"
   Eigen::Vector2i bbv1 {std::min({v1.x(), v2.x(), v3.x()}), std::min({v1.y(), v2.y(), v3.y()})};
   Eigen::Vector2i bbv2 {std::max({v1.x(), v2.x(), v3.x()}), std::max({v1.y(), v2.y(), v3.y()})};
-  
+
   for(int y = bbv1.y(); y <= bbv2.y(); ++y) {
     for(int x = bbv1.x(); x <= bbv2.x(); ++x) {
       Eigen::Vector3f bc = srd::Barycentric({x, y, 0}, v1, v2, v3);
@@ -135,7 +138,7 @@ void srd::DrawPolygon(
   TGAColor color
 ) {
   assert(verts.size() >= 3);
-  
+
   auto lastOne(verts[1]);
   for(auto it = std::next(verts.begin(), 2); it != verts.end(); ++it) {
     srd::DrawTriangle(verts[0], lastOne, *it, frame, color);
@@ -146,15 +149,6 @@ void srd::DrawPolygon(
 template <class N>
 N srd::Map(N value, N fromMin, N fromMax, N toMin, N toMax)  {
   return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
-}
-
-int srd::RandInt(int min, int max) {
-  static bool first = true;
-  if (first) {  
-    std::srand(time(nullptr));
-    first = false;
-  }
-  return min + rand() % ((max + 1) - min);
 }
 
 Eigen::Vector3f srd::Barycentric(

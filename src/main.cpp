@@ -6,6 +6,15 @@
 #include "../external/custom/model.hpp"
 #include "render.hpp"
 
+int RandInt(int min, int max) {
+  static bool first = true;
+  if (first) {
+    std::srand(time(nullptr));
+    first = false;
+  }
+  return min + rand() % ((max + 1) - min);
+}
+
 const TGAColor white(255, 255, 255, 255);
 const TGAColor red(255, 0, 0, 255);
 const TGAColor green(0, 255, 0, 255);
@@ -52,13 +61,13 @@ void DrawRandomColorModel(srd::FrameBuffer& frame) {
       Eigen::Vector3i v1 = HeadAbsCoord(model.vert(face[0]), frame);
       Eigen::Vector3i v2 = HeadAbsCoord(model.vert(face[1]), frame);
       Eigen::Vector3i v3 = HeadAbsCoord(model.vert(face[2]), frame);
-      TGAColor color(srd::RandInt(0, 256), srd::RandInt(0, 256), srd::RandInt(0, 256), 255);
+      TGAColor color(RandInt(0, 256), RandInt(0, 256), RandInt(0, 256), 255);
       srd::DrawTriangle(v1, v2, v3, frame, color);
   }
 }
 void DrawSurfaceNormalColorModel(srd::FrameBuffer& frame, bool depthTest, bool correctGamma) {
   frame.SetDepthTest(depthTest);
-  
+
   Eigen::Vector3f lightVec(0, 0, -1);
   Model model("obj/african_head.obj");
   for(int i = 0; i < model.nfaces(); ++i) {
@@ -127,7 +136,7 @@ int main(int argc, char** argv) {
   // DrawRandomColorModel(frame);
   // DrawSurfaceNormalColorModel(frame, true, false);
   // DrawSurfaceNormalColorModel(frame, false, true);
-  DrawSurfaceNormalColorModel(frame, true, true);
+  // DrawSurfaceNormalColorModel(frame, true, true);
   frame.Write("./build/output.tga");
   srd::debug::DumpZBufferTGA(frame);
 
