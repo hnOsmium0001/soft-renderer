@@ -5,7 +5,7 @@
 #include "../external/custom/tgaimage.hpp"
 
 // Stands for "Soft RenDerer"
-namespace srd {
+namespace SRender {
 
   // 2D rendering
 
@@ -47,13 +47,21 @@ namespace srd {
   // 3D rendering
 
   class Camera {
+  private:
+    Eigen::Vector3f _pos;
+    Eigen::Vector3f _up;
+
+    Eigen::Matrix4f _view;
+    Eigen::Matrix4f _projection;
+    Eigen::Matrix4f _viewport;
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    Eigen::Vector3f _pos;
-    Eigen::Vector3f _angle;
+    Camera(Eigen::Vector3f pos = {0, 0, -1}, Eigen::Vector3f up = {0, 1, 0});
+    void LookAt(const Eigen::Vector3f& eye, const Eigen::Vector3f& up, const Eigen::Vector3f& center);
+    void Viewport(int x, int y, int w, int h);
 
-    Camera(Eigen::Vector3f pos = {0, 0, 0}, Eigen::Vector3f angle = {0, 0, 0});
+    Eigen::Vector3i ToScreen(const Eigen::Vector3f& pt);
   };
 
   // Misc utilities
@@ -70,7 +78,8 @@ namespace srd {
   namespace debug {
 
     void DumpZBufferConsole(FrameBuffer& target);
-    void DumpZBufferTGA(FrameBuffer& target);
+    void DumpZBufferTGASimple(FrameBuffer& target);
+    void DumpZBufferTGAFull(FrameBuffer& target);
 
   }
 }
