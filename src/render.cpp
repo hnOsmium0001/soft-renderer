@@ -6,12 +6,8 @@
 #include "../external/custom/tgaimage.hpp"
 #include "render.hpp"
 
-srd::Camera::Camera(Eigen::Vector3f pos, Eigen::Vector3f angle)
-: _pos(pos), _angle(angle) {
-}
-
 srd::FrameBuffer::FrameBuffer(int width, int height, int defaultZ)
-: _cam{}, _image{width, height, TGAImage::RGB}, _zBuffer(width * height, defaultZ) {
+: _image{width, height, TGAImage::RGB}, _zBuffer(width * height, defaultZ) {
 }
 
 void srd::FrameBuffer::Write(const std::string path) {
@@ -52,8 +48,8 @@ void srd::DrawLine(
   FrameBuffer& frame,
   TGAColor color
 ) {
-  Eigen::Vector3i v1(v1In);
-  Eigen::Vector3i v2(v2In);
+  auto v1(v1In);
+  auto v2(v2In);
 
   // Swapping is safe because pass-by-value
   bool steep = false;
@@ -90,7 +86,7 @@ void srd::DrawTriangle(
 
   for(int y = bbv1.y(); y <= bbv2.y(); ++y) {
     for(int x = bbv1.x(); x <= bbv2.x(); ++x) {
-      Eigen::Vector3f bc = srd::Barycentric({x, y, 0}, v1, v2, v3);
+      auto bc = srd::Barycentric({x, y, 0}, v1, v2, v3);
       float z =
         v1.z() * bc.x() +
         v2.z() * bc.y() +
@@ -146,33 +142,33 @@ void srd::DrawPolygon(
   }
 }
 
-template <class N>
-N srd::Map(N value, N fromMin, N fromMax, N toMin, N toMax)  {
-  return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
+srd::Camera::Camera(Eigen::Vector3f pos, Eigen::Vector3f angle)
+: _pos(pos), _angle(angle) {
 }
 
-Eigen::Vector3f srd::Barycentric(
-  const Eigen::Vector3i& pt,
-  const Eigen::Vector3i& v1,
-  const Eigen::Vector3i& v2,
-  const Eigen::Vector3i& v3
+template <class V>
+Eigen::Matrix<V, 3, 1> srd::Barycentric(
+  const Eigen::Matrix<V, 3, 1>& pt,
+  const Eigen::Matrix<V, 3, 1>& v1,
+  const Eigen::Matrix<V, 3, 1>& v2,
+  const Eigen::Matrix<V, 3, 1>& v3
 ) {
-  Eigen::Vector3f u =
-           Eigen::Vector3f(v3.x() - v1.x(), v2.x() - v1.x(), v1.x() - pt.x())
-    .cross(Eigen::Vector3f(v3.y() - v1.y(), v2.y() - v1.y(), v1.y() - pt.y()));
+  auto u = Eigen::Matrix<V, 3, 1>(v3.x() - v1.x(), v2.x() - v1.x(), v1.x() - pt.x())
+    .cross(Eigen::Matrix<V, 3, 1>(v3.y() - v1.y(), v2.y() - v1.y(), v1.y() - pt.y()));
   if (std::abs(u.z()) < 1)
-    return Eigen::Vector3f(-1, 1, 1);
-  return Eigen::Vector3f(1.0f - (u.x() + u.y()) / u.z(), u.y() / u.z(), u.x() / u.z());
+    return Eigen::Matrix<V, 3, 1>(-1, 1, 1);
+  return Eigen::Matrix<V, 3, 1>(1.0f - (u.x() + u.y()) / u.z(), u.y() / u.z(), u.x() / u.z());
 }
 
 float Sign(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, Eigen::Vector3i p3) {
   return (p1.x() - p3.x()) * (p2.y() - p3.y()) - (p2.x() - p3.x()) * (p1.y() - p3.y());
 }
+template <class V>
 bool srd::PtInTriangle(
-  const Eigen::Vector3i& pt,
-  const Eigen::Vector3i& v1,
-  const Eigen::Vector3i& v2,
-  const Eigen::Vector3i& v3
+  const Eigen::Matrix<V, 3, 1>& pt,
+  const Eigen::Matrix<V, 3, 1>& v1,
+  const Eigen::Matrix<V, 3, 1>& v2,
+  const Eigen::Matrix<V, 3, 1>& v3
 ) {
   float d1 = Sign(pt, v1, v2);
   float d2 = Sign(pt, v2, v3);
@@ -180,6 +176,11 @@ bool srd::PtInTriangle(
   bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
   bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
   return !(hasNeg && hasPos);
+}
+
+template <class N>
+N srd::Map(N value, N fromMin, N fromMax, N toMin, N toMax)  {
+  return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
 }
 
 void srd::debug::DumpZBufferConsole(srd::FrameBuffer& target) {

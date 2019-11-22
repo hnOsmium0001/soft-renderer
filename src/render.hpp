@@ -7,19 +7,10 @@
 // Stands for "Soft RenDerer"
 namespace srd {
 
-  class Camera {
-  public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-    Eigen::Vector3f _pos;
-    Eigen::Vector3f _angle;
-
-    Camera(Eigen::Vector3f pos = {0, 0, 0}, Eigen::Vector3f angle = {0, 0, 0});
-  };
+  // 2D rendering
 
   class FrameBuffer {
   private:
-    Camera _cam;
     TGAImage _image;
     std::vector<int> _zBuffer;
 
@@ -27,8 +18,6 @@ namespace srd {
     bool enableDepthWrite = true;
 
   public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
     FrameBuffer(int width, int height, int defaultZ=0);
     void Write(const std::string path);
     void Set(int x, int y, int z, TGAColor color);
@@ -55,11 +44,28 @@ namespace srd {
   void DrawTriangleStrip(const std::vector<Eigen::Vector3i>& verts, FrameBuffer& frame, TGAColor color);
   void DrawPolygon(const std::vector<Eigen::Vector3i>& verts, FrameBuffer& frame, TGAColor color);
 
+  // 3D rendering
+
+  class Camera {
+  public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    Eigen::Vector3f _pos;
+    Eigen::Vector3f _angle;
+
+    Camera(Eigen::Vector3f pos = {0, 0, 0}, Eigen::Vector3f angle = {0, 0, 0});
+  };
+
+  // Misc utilities
+
   template <class N>
   N Map(N value, N fromMin, N fromMax, N toMin, N toMax);
 
-  Eigen::Vector3f Barycentric(const Eigen::Vector3i& pt, const Eigen::Vector3i& v1, const Eigen::Vector3i& v2, const Eigen::Vector3i& v3);
-  bool PtInTriangle(const Eigen::Vector3i& pt, const Eigen::Vector3i& v1, const Eigen::Vector3i& v2, const Eigen::Vector3i& v3);
+  template <class V>
+  Eigen::Matrix<V, 3, 1> Barycentric(const Eigen::Matrix<V, 3, 1>& pt, const Eigen::Matrix<V, 3, 1>& v1, const Eigen::Matrix<V, 3, 1>& v2, const Eigen::Matrix<V, 3, 1>& v3);
+
+  template <class V>
+  bool PtInTriangle(const Eigen::Matrix<V, 3, 1>& pt, const Eigen::Matrix<V, 3, 1>& v1, const Eigen::Matrix<V, 3, 1>& v2, const Eigen::Matrix<V, 3, 1>& v3);
 
   namespace debug {
 
