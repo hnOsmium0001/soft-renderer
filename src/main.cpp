@@ -110,7 +110,7 @@ void DrawTeapot() {
       };
     }
 
-    auto normal = (wv[2] - wv[0]).cross(wv[1] - wv[0]).normalized();
+    Eigen::Vector3f normal = (wv[2] - wv[0]).cross(wv[1] - wv[0]).normalized();
     float lv = normal.dot(lightVec);
     if(lv > 0) {
       int corrected = 255 * pow(lv, 1 / 2.2);
@@ -123,7 +123,7 @@ void DrawTeapot() {
 
 void DrawCameraHeadModel(SRender::FrameBuffer& frame) {
   SRender::Camera cam {};
-  cam.LookAt({0, 0, 3}, {0, 1, 0}, {0, 0, 0});
+  cam.LookAt({0, 0, 50}, {0, 1, 0}, {0, 0, 0});
   cam.Viewport(frame.width() / 8, frame.height() / 8, frame.width() * 3/4, frame.height() * 3/4);
 
   // Environment
@@ -139,7 +139,7 @@ void DrawCameraHeadModel(SRender::FrameBuffer& frame) {
       sv[j] = cam.ToScreen(wv[j]);
     }
 
-    auto normal = (wv[2] - wv[0]).cross(wv[1] - wv[0]).normalized();
+    Eigen::Vector3f normal = (wv[2] - wv[0]).cross(wv[1] - wv[0]).normalized();
     float lv = normal.dot(lightVec);
     if(lv > 0) {
       int corrected = 255 * pow(lv, 1 / 2.2);

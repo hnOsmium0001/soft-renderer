@@ -162,11 +162,12 @@ void SRender::Camera::LookAt(
   _view.block<1, 3>(2, 0) = z;
   _view.block<3, 1>(0, 3) = -center;
 
+  _projection.setIdentity();
   _projection(3, 2) = -1.0f / (eye - center).norm();
 }
 
 void SRender::Camera::Viewport(int x, int y, int w, int h) {
-  static const int d = 255;
+  static const float d = 255.0f;
   _viewport.setIdentity();
 
   // Translation
@@ -181,12 +182,11 @@ void SRender::Camera::Viewport(int x, int y, int w, int h) {
 }
 
 Eigen::Vector3i SRender::Camera::ToScreen(const Eigen::Vector3f& pt) {
-  // std::cout << pt << "\n\n";
   Eigen::Vector4f affine = Eigen::Vector4f();
   affine.block<3, 1>(0, 0) = pt;
+  affine(3, 0) = 1;
   Eigen::Vector4f res = _viewport * _projection * _view * affine;
   Eigen::Vector3f unaffine = res.head<3>() / res.w();
-  // std::cout << unaffine << "\n\n";
   return unaffine.cast<int>();
 }
 
