@@ -32,17 +32,6 @@ void SRender::FrameBuffer::Set(const Eigen::Vector3i& v, TGAColor color) {
   this->Set(v.x(), v.y(), v.z(), color);
 }
 
-const Eigen::Vector3i& SRender::PtMin(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2) {
-  if(p1.x() > p2.x()) return p2;
-  if(p1.y() > p2.y()) return p2;
-  return p1;
-}
-const Eigen::Vector3i& SRender::PtMax(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2) {
-  if(p1.x() < p2.x()) return p2;
-  if(p1.y() < p2.y()) return p2;
-  return p1;
-}
-
 void SRender::DrawLine(
   const Eigen::Vector3i& v1In,
   const Eigen::Vector3i& v2In,
@@ -82,8 +71,14 @@ void SRender::DrawTriangle(
   TGAColor color
 ) {
   // Stands for "Boudning Box Vertex 1/2"
-  Eigen::Vector2i bbv1 {std::min({v1.x(), v2.x(), v3.x()}), std::min({v1.y(), v2.y(), v3.y()})};
-  Eigen::Vector2i bbv2 {std::max({v1.x(), v2.x(), v3.x()}), std::max({v1.y(), v2.y(), v3.y()})};
+  Eigen::Vector2i bbv1 {
+    std::max(0, std::min({v1.x(), v2.x(), v3.x()})),
+    std::max(0, std::min({v1.y(), v2.y(), v3.y()}))
+  };
+  Eigen::Vector2i bbv2 {
+    std::min(frame.width(), std::max({v1.x(), v2.x(), v3.x()})),
+    std::min(frame.height(), std::max({v1.y(), v2.y(), v3.y()}))
+  };
 
   for(int y = bbv1.y(); y <= bbv2.y(); ++y) {
     for(int x = bbv1.x(); x <= bbv2.x(); ++x) {
@@ -93,6 +88,7 @@ void SRender::DrawTriangle(
         v2.z() * bc.y() +
         v3.z() * bc.z();
       if(SRender::PtInTriangle({x, y, 0}, v1, v2, v3)) {
+        // std::cout << Eigen::Vector3i(x, y, z) << "\n\n";
         frame.Set(x, y, z, color);
       }
     }
@@ -144,8 +140,7 @@ void SRender::DrawPolygon(
 }
 
 SRender::Camera::Camera(Eigen::Vector3f pos, Eigen::Vector3f up)
-: _pos(pos), _up(up),
-  _view(Eigen::Matrix4f::Identity()), _projection(Eigen::Matrix4f::Identity()), _viewport(Eigen::Matrix4f::Identity()) {
+: _view(Eigen::Matrix4f::Identity()), _projection(Eigen::Matrix4f::Identity()), _viewport(Eigen::Matrix4f::Identity()) {
 }
 
 void SRender::Camera::LookAt(
@@ -157,19 +152,17 @@ void SRender::Camera::LookAt(
   Eigen::Vector3f x = up.cross(z).normalized();
   Eigen::Vector3f y = z.cross(x).normalized();
 
-  Eigen::Matrix4f m = Eigen::Matrix4f::Identity();
-  m.block<1, 3>(0, 0) = x;
-  m.block<1, 3>(1, 0) = y;
-  m.block<1, 3>(2, 0) = z;
-
-  Eigen::Matrix4f tr = Eigen::Matrix4f::Identity();
-  tr.block<3, 1>(0, 3) = -center;
-
   // x x x -c
   // y y y -c
   // z z z -c
   // 0 0 0  1
-  _view = m * tr;
+  _view.setIdentity();
+  _view.block<1, 3>(0, 0) = x;
+  _view.block<1, 3>(1, 0) = y;
+  _view.block<1, 3>(2, 0) = z;
+  _view.block<3, 1>(0, 3) = -center;
+
+  _projection(3, 2) = -1.0f / (eye - center).norm();
 }
 
 void SRender::Camera::Viewport(int x, int y, int w, int h) {
@@ -188,10 +181,12 @@ void SRender::Camera::Viewport(int x, int y, int w, int h) {
 }
 
 Eigen::Vector3i SRender::Camera::ToScreen(const Eigen::Vector3f& pt) {
+  // std::cout << pt << "\n\n";
   Eigen::Vector4f affine = Eigen::Vector4f();
   affine.block<3, 1>(0, 0) = pt;
   Eigen::Vector4f res = _viewport * _projection * _view * affine;
   Eigen::Vector3f unaffine = res.head<3>() / res.w();
+  // std::cout << unaffine << "\n\n";
   return unaffine.cast<int>();
 }
 

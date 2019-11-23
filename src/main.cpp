@@ -123,7 +123,8 @@ void DrawTeapot() {
 
 void DrawCameraHeadModel(SRender::FrameBuffer& frame) {
   SRender::Camera cam {};
-  cam.Viewport(0, 0, frame.width(), frame.height());
+  cam.LookAt({0, 0, 3}, {0, 1, 0}, {0, 0, 0});
+  cam.Viewport(frame.width() / 8, frame.height() / 8, frame.width() * 3/4, frame.height() * 3/4);
 
   // Environment
   Eigen::Vector3f lightVec(0, 0, -1);

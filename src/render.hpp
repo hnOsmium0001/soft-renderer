@@ -35,9 +35,6 @@ namespace SRender {
     const std::vector<int>& zBuffer() const { return this->_zBuffer; }
   };
 
-  const Eigen::Vector3i& PtMin(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2);
-  const Eigen::Vector3i& PtMax(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2);
-
   void DrawLine(const Eigen::Vector3i& v1, const Eigen::Vector3i& v2, FrameBuffer& frame, TGAColor color);
   void DrawTriangle(const Eigen::Vector3i& v1, const Eigen::Vector3i& v2, const Eigen::Vector3i& v3, FrameBuffer& frame, TGAColor color);
   void DrawTriangles(const std::vector<Eigen::Vector3i>& verts, const std::vector<int> indices, FrameBuffer& frame, TGAColor color);
@@ -48,12 +45,10 @@ namespace SRender {
 
   class Camera {
   private:
-    Eigen::Vector3f _pos;
-    Eigen::Vector3f _up;
-
     Eigen::Matrix4f _view;
     Eigen::Matrix4f _projection;
     Eigen::Matrix4f _viewport;
+
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
