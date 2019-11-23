@@ -168,6 +168,7 @@ void SRender::Camera::LookAt(
 
 void SRender::Camera::Viewport(int x, int y, int w, int h) {
   static const float d = 255.0f;
+  static const float minD = 0.0f;
   _viewport.setIdentity();
 
   // Translation
@@ -177,7 +178,7 @@ void SRender::Camera::Viewport(int x, int y, int w, int h) {
 
   // Scaling
   _viewport(0, 0) = w/2;
-  _viewport(1, 1) = y/2;
+  _viewport(1, 1) = h/2;
   _viewport(2, 2) = d/2;
 }
 
