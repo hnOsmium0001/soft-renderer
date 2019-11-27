@@ -115,12 +115,12 @@ void SRender::DrawTriangleStrip(
 ) {
   assert(verts.size() >= 3);
 
-  auto lastOne(verts[0]);
-  auto lastTwo(verts[1]);
+  auto lastOne = &verts[0];
+  auto lastTwo = &verts[1];
   for(auto it = std::next(verts.begin(), 2); it != verts.end(); ++it) {
-    SRender::DrawTriangle(lastOne, lastTwo, *it, frame, color);
+    SRender::DrawTriangle(*lastOne, *lastTwo, *it, frame, color);
     lastTwo = lastOne;
-    lastOne = *it;
+    lastOne = &*it;
   }
 }
 
@@ -138,36 +138,47 @@ void SRender::DrawPolygon(
   }
 }
 
-Eigen::Vector4f SRender::RegToAffine(const Eigen::Vector3f &v) {
-  return {v.x(), v.y(), v.z(), 1};
-}
-
-Eigen::Vector3f SRender::AffineToReg(const Eigen::Vector4f &v) {
-  return v.head<3>() / v.w();
-}
-
-void SRender::Camera::BindShader(VCallback vsh) {
+void SRender::Pipeline::BindShader(VCallback vsh) {
   this->_vsh = vsh;
 }
 
-void SRender::Camera::BindShader(FCallback fsh) {
+void SRender::Pipeline::BindShader(FCallback fsh) {
   this->_fsh = fsh;
 }
 
-void SRender::Camera::BindShaders(VCallback vsh, FCallback fsh) {
+void SRender::Pipeline::BindShaders(VCallback vsh, FCallback fsh) {
   this->_vsh = vsh;
   this->_fsh = fsh;
 }
 
-Eigen::Vector3i SRender::Camera::ToScreen(const Eigen::Vector3f &pt) {
-  return _fsh(_vsh(pt)).pos;
+void SRender::Pipeline::Render(
+  FrameBuffer &frame,
+  const std::vector<ScrnPrimitive> &primitives
+) {
+  for(auto& p : primitives) {
+    p.match(
+      [](LinePrimitive line) {
+        
+      },
+      [](TrianglePrimitive tri) {
+
+      });
+  }
 }
 
-SRender::FixedPplCamera::FixedPplCamera(Eigen::Vector3f pos, Eigen::Vector3f up)
+SRender::ScrnPixel SRender::Pipeline::ToViewport(
+  const SRender::ScrnPrimitive& primitive,
+  const Eigen::Vector3f& pt
+) {
+  // TODO primitive dependent logic
+  return _fsh(_vsh(pt));
+}
+
+SRender::Camera::Camera(Eigen::Vector3f pos, Eigen::Vector3f up)
 : _view(Eigen::Matrix4f::Identity()), _projection(Eigen::Matrix4f::Identity()), _viewport(Eigen::Matrix4f::Identity()) {
 }
 
-void SRender::FixedPplCamera::LookAt(
+void SRender::Camera::LookAt(
   const Eigen::Vector3f& eye,
   const Eigen::Vector3f& up,
   const Eigen::Vector3f& center
@@ -190,7 +201,7 @@ void SRender::FixedPplCamera::LookAt(
   _projection(3, 2) = -1.0f / (eye - center).norm();
 }
 
-void SRender::FixedPplCamera::Viewport(int x, int y, int w, int h) {
+void SRender::Camera::Viewport(int x, int y, int w, int h) {
   static const float d = 255.0f;
   static const float minD = 0.0f;
   _viewport.setIdentity();
@@ -206,13 +217,17 @@ void SRender::FixedPplCamera::Viewport(int x, int y, int w, int h) {
   _viewport(2, 2) = d/2;
 }
 
-Eigen::Vector3i SRender::FixedPplCamera::ToScreen(const Eigen::Vector3f& pt) {
+Eigen::Vector3f SRender::Camera::Transform(const Eigen::Vector3f& pt) {
   Eigen::Vector4f affine = Eigen::Vector4f();
   affine.block<3, 1>(0, 0) = pt;
   affine(3, 0) = 1;
   Eigen::Vector4f res = _viewport * _projection * _view * affine;
-  Eigen::Vector3f unaffine = res.head<3>() / res.w();
-  return unaffine.cast<int>();
+  return res.head<3>() / res.w();
+}
+
+template <class N>
+N SRender::Map(N value, N fromMin, N fromMax, N toMin, N toMax)  {
+  return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
 }
 
 template <class V>
@@ -250,9 +265,12 @@ bool SRender::PtInTriangle(
   return !(hasNeg && hasPos);
 }
 
-template <class N>
-N SRender::Map(N value, N fromMin, N fromMax, N toMin, N toMax)  {
-  return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
+Eigen::Vector4f SRender::RegToAffine(const Eigen::Vector3f &v) {
+  return {v.x(), v.y(), v.z(), 1};
+}
+
+Eigen::Vector3f SRender::AffineToReg(const Eigen::Vector4f &v) {
+  return v.head<3>() / v.w();
 }
 
 void SRender::debug::DumpZBufferConsole(SRender::FrameBuffer& target) {

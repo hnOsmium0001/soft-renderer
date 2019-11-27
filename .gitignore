@@ -2,6 +2,9 @@
 build/
 tmp/
 
+external/*
+!external/custom/
+
 # CMake stuff
 CMakeFiles/
 CMake*.txt

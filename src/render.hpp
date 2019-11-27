@@ -2,8 +2,13 @@
 
 #include <vector>
 #include <memory>
-#include "../external/Eigen/Dense"
+#include "../external/eigen/Dense"
 #include "../external/custom/tgaimage.hpp"
+
+// TODO use std::variant
+// #if __cplusplus != 201703L
+#include "../external/variant/mapbox/variant.hpp"
+// #endif
 
 // Stands for "Soft RenDerer"
 namespace SRender {
@@ -42,10 +47,7 @@ namespace SRender {
   void DrawTriangleStrip(const std::vector<Eigen::Vector3i>& verts, FrameBuffer& frame, TGAColor color);
   void DrawPolygon(const std::vector<Eigen::Vector3i>& verts, FrameBuffer& frame, TGAColor color);
 
-  // 3D rendering
-
-  Eigen::Vector4f RegToAffine(const Eigen::Vector3f& v);
-  Eigen::Vector3f AffineToReg(const Eigen::Vector4f& v);
+  // Render pipline for 2D and 3D rendering
 
   class LinePrimitive {
   public:
@@ -61,22 +63,17 @@ namespace SRender {
     std::array<Eigen::Vector3i, 3> verts;
   };
 
-#if __cplusplus == 201703L
-  using ScrnPrimitive = std::variant<LinePrimitive, TrianglePrimitive>;
-#else
-  using ScrnPrimitive = union {
-    LinePrimitive line;
-    TrianglePrimitive tri;
-  };
-#endif
+  using ScrnPrimitive = mapbox::util::variant<LinePrimitive, TrianglePrimitive>;
 
   class ScrnPixel {
   public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
     Eigen::Vector3i pos;
     TGAColor color;
   };
 
-  class Camera {
+  class Pipeline {
   private:
     using VCallback = std::function<Eigen::Vector4f(const Eigen::Vector3f&)>;
     using FCallback = std::function<ScrnPixel(const Eigen::Vector4f&)>;
@@ -85,19 +82,22 @@ namespace SRender {
     FCallback _fsh;
 
   public:
-    Camera() = default;
+    Pipeline() = default;
     void BindShader(VCallback vsh);
     void BindShader(FCallback fsh);
     void BindShaders(VCallback vsh, FCallback fsh);
-    Eigen::Vector3i ToScreen(const Eigen::Vector3f& pt);
+    void Render(FrameBuffer& frame, const std::vector<ScrnPrimitive>& primitives);
+    ScrnPixel ToViewport(const ScrnPrimitive& primitive, const Eigen::Vector3f& pt);
 
-    VCallback& vsh();
-    const VCallback& vsh() const;
-    FCallback& fsh();
-    const FCallback& fsh() const;
+    VCallback& vsh() { return _vsh; }
+    const VCallback& vsh() const { return _vsh; }
+    FCallback& fsh() { return _fsh; }
+    const FCallback& fsh() const { return _fsh; }
   };
 
-  class FixedPplCamera {
+  // 3D specific rendering
+
+  class Camera {
   private:
     Eigen::Matrix4f _view;
     Eigen::Matrix4f _projection;
@@ -106,11 +106,17 @@ namespace SRender {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    FixedPplCamera(Eigen::Vector3f pos = {0, 0, -1}, Eigen::Vector3f up = {0, 1, 0});
+    Camera(Eigen::Vector3f pos = {0, 0, -1}, Eigen::Vector3f up = {0, 1, 0});
     void LookAt(const Eigen::Vector3f& eye, const Eigen::Vector3f& up, const Eigen::Vector3f& center);
     void Viewport(int x, int y, int w, int h);
+    Eigen::Vector3f Transform(const Eigen::Vector3f& pt);
 
-    Eigen::Vector3i ToScreen(const Eigen::Vector3f& pt);
+    Eigen::Matrix4f& view() { return _view; }
+    const Eigen::Matrix4f& view() const { return _view; }
+    Eigen::Matrix4f& projection() { return _projection; }
+    const Eigen::Matrix4f& projection() const { return _projection; }
+    Eigen::Matrix4f& viewport() { return _viewport; }
+    const Eigen::Matrix4f& viewport() const { return _viewport; }
   };
 
   // Misc utilities
@@ -123,6 +129,9 @@ namespace SRender {
 
   template <class V>
   bool PtInTriangle(const Eigen::Matrix<V, 3, 1>& pt, const Eigen::Matrix<V, 3, 1>& v1, const Eigen::Matrix<V, 3, 1>& v2, const Eigen::Matrix<V, 3, 1>& v3);
+
+  Eigen::Vector4f RegToAffine(const Eigen::Vector3f& v);
+  Eigen::Vector3f AffineToReg(const Eigen::Vector4f& v);
 
   namespace debug {
 

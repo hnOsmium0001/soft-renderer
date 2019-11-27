@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 SET(CMAKE_C_COMPILER /usr/bin/gcc)
 SET(CMAKE_CXX_COMPILER /usr/bin/g++)
-set(CMAKE_CXX_STANDARD 14)
 
 project(SoftRenderer)
 
@@ -11,7 +10,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/bin)
 
 add_subdirectory(external/custom/)
 include_directories(
-  external/Eigen
+  external/eigen
+  external/variant
 )
 
 add_executable(soft_renderer
