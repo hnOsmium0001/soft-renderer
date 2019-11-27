@@ -126,7 +126,7 @@ void DrawCameraHeadModel(SRender::FrameBuffer& frame) {
   std::cout << "Enter camera position in order of x, y, z: \n";
   std::cin >> camPos.x() >> camPos.y() >> camPos.z();
 
-  SRender::Camera cam {};
+  SRender::FixedPplCamera cam {};
   cam.LookAt(camPos, {0, 1, 0}, {0, 0, 0});
   cam.Viewport(frame.width() / 8, frame.height() / 8, frame.width() * 3/4, frame.height() * 3/4);
 

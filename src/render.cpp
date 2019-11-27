@@ -83,12 +83,11 @@ void SRender::DrawTriangle(
   for(int y = bbv1.y(); y <= bbv2.y(); ++y) {
     for(int x = bbv1.x(); x <= bbv2.x(); ++x) {
       auto bc = SRender::Barycentric({x, y, 0}, v1, v2, v3);
-      float z =
-        v1.z() * bc.x() +
-        v2.z() * bc.y() +
-        v3.z() * bc.z();
-      if(SRender::PtInTriangle({x, y, 0}, v1, v2, v3)) {
-        // std::cout << Eigen::Vector3i(x, y, z) << "\n\n";
+      if(PtInTriangle({x, y, 0}, v1, v2, v3)) {
+        float z =
+          v1.z() * bc.x() +
+          v2.z() * bc.y() +
+          v3.z() * bc.z();
         frame.Set(x, y, z, color);
       }
     }
@@ -132,18 +131,43 @@ void SRender::DrawPolygon(
 ) {
   assert(verts.size() >= 3);
 
-  auto lastOne(verts[1]);
+  auto lastOne = &verts[1];
   for(auto it = std::next(verts.begin(), 2); it != verts.end(); ++it) {
-    SRender::DrawTriangle(verts[0], lastOne, *it, frame, color);
-    lastOne = *it;
+    SRender::DrawTriangle(verts[0], *lastOne, *it, frame, color);
+    lastOne = &*it;
   }
 }
 
-SRender::Camera::Camera(Eigen::Vector3f pos, Eigen::Vector3f up)
+Eigen::Vector4f SRender::RegToAffine(const Eigen::Vector3f &v) {
+  return {v.x(), v.y(), v.z(), 1};
+}
+
+Eigen::Vector3f SRender::AffineToReg(const Eigen::Vector4f &v) {
+  return v.head<3>() / v.w();
+}
+
+void SRender::Camera::BindShader(VCallback vsh) {
+  this->_vsh = vsh;
+}
+
+void SRender::Camera::BindShader(FCallback fsh) {
+  this->_fsh = fsh;
+}
+
+void SRender::Camera::BindShaders(VCallback vsh, FCallback fsh) {
+  this->_vsh = vsh;
+  this->_fsh = fsh;
+}
+
+Eigen::Vector3i SRender::Camera::ToScreen(const Eigen::Vector3f &pt) {
+  return _fsh(_vsh(pt)).pos;
+}
+
+SRender::FixedPplCamera::FixedPplCamera(Eigen::Vector3f pos, Eigen::Vector3f up)
 : _view(Eigen::Matrix4f::Identity()), _projection(Eigen::Matrix4f::Identity()), _viewport(Eigen::Matrix4f::Identity()) {
 }
 
-void SRender::Camera::LookAt(
+void SRender::FixedPplCamera::LookAt(
   const Eigen::Vector3f& eye,
   const Eigen::Vector3f& up,
   const Eigen::Vector3f& center
@@ -166,7 +190,7 @@ void SRender::Camera::LookAt(
   _projection(3, 2) = -1.0f / (eye - center).norm();
 }
 
-void SRender::Camera::Viewport(int x, int y, int w, int h) {
+void SRender::FixedPplCamera::Viewport(int x, int y, int w, int h) {
   static const float d = 255.0f;
   static const float minD = 0.0f;
   _viewport.setIdentity();
@@ -182,7 +206,7 @@ void SRender::Camera::Viewport(int x, int y, int w, int h) {
   _viewport(2, 2) = d/2;
 }
 
-Eigen::Vector3i SRender::Camera::ToScreen(const Eigen::Vector3f& pt) {
+Eigen::Vector3i SRender::FixedPplCamera::ToScreen(const Eigen::Vector3f& pt) {
   Eigen::Vector4f affine = Eigen::Vector4f();
   affine.block<3, 1>(0, 0) = pt;
   affine(3, 0) = 1;

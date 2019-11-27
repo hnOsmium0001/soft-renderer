@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include "../external/Eigen/Dense"
 #include "../external/custom/tgaimage.hpp"
 
@@ -43,7 +44,60 @@ namespace SRender {
 
   // 3D rendering
 
+  Eigen::Vector4f RegToAffine(const Eigen::Vector3f& v);
+  Eigen::Vector3f AffineToReg(const Eigen::Vector4f& v);
+
+  class LinePrimitive {
+  public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    std::array<Eigen::Vector3i, 2> verts;
+  };
+
+  class TrianglePrimitive {
+  public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    std::array<Eigen::Vector3i, 3> verts;
+  };
+
+#if __cplusplus == 201703L
+  using ScrnPrimitive = std::variant<LinePrimitive, TrianglePrimitive>;
+#else
+  using ScrnPrimitive = union {
+    LinePrimitive line;
+    TrianglePrimitive tri;
+  };
+#endif
+
+  class ScrnPixel {
+  public:
+    Eigen::Vector3i pos;
+    TGAColor color;
+  };
+
   class Camera {
+  private:
+    using VCallback = std::function<Eigen::Vector4f(const Eigen::Vector3f&)>;
+    using FCallback = std::function<ScrnPixel(const Eigen::Vector4f&)>;
+
+    VCallback _vsh;
+    FCallback _fsh;
+
+  public:
+    Camera() = default;
+    void BindShader(VCallback vsh);
+    void BindShader(FCallback fsh);
+    void BindShaders(VCallback vsh, FCallback fsh);
+    Eigen::Vector3i ToScreen(const Eigen::Vector3f& pt);
+
+    VCallback& vsh();
+    const VCallback& vsh() const;
+    FCallback& fsh();
+    const FCallback& fsh() const;
+  };
+
+  class FixedPplCamera {
   private:
     Eigen::Matrix4f _view;
     Eigen::Matrix4f _projection;
@@ -52,7 +106,7 @@ namespace SRender {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    Camera(Eigen::Vector3f pos = {0, 0, -1}, Eigen::Vector3f up = {0, 1, 0});
+    FixedPplCamera(Eigen::Vector3f pos = {0, 0, -1}, Eigen::Vector3f up = {0, 1, 0});
     void LookAt(const Eigen::Vector3f& eye, const Eigen::Vector3f& up, const Eigen::Vector3f& center);
     void Viewport(int x, int y, int w, int h);
 
