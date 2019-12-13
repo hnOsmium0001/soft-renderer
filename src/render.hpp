@@ -38,16 +38,6 @@ namespace SRender {
     const std::vector<int>& zBuffer() const { return this->_zBuffer; }
   };
 
-  // Primitives
-
-  class ScrnPixel {
-  public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-
-    Eigen::Vector3i pos;
-    TGAColor color;
-  };
-
   // Render pipline for 2D and 3D rendering
 
   class Pipeline {
@@ -107,11 +97,11 @@ namespace SRender {
   template <class N>
   N Map(N value, N fromMin, N fromMax, N toMin, N toMax);
 
-  template <class V, int S>
-  Eigen::Matrix<V, S, 1> Barycentric(const Eigen::Matrix<V, S, 1>& pt, const Eigen::Matrix<V, S, 1>& v1, const Eigen::Matrix<V, S, 1>& v2, const Eigen::Matrix<V, S, 1>& v3);
+  template <class V>
+  Eigen::Matrix<V, 3, 1> Barycentric(const Eigen::Matrix<V, 3, 1>& pt, const Eigen::Matrix<V, 3, 1>& v1, const Eigen::Matrix<V, 3, 1>& v2, const Eigen::Matrix<V, 3, 1>& v3);
 
-  template <class V, int S>
-  bool PtInTriangle(const Eigen::Matrix<V, S, 1>& pt, const Eigen::Matrix<V, S, 1>& v1, const Eigen::Matrix<V, S, 1>& v2, const Eigen::Matrix<V, S, 1>& v3);
+  template <class V>
+  bool PtInTriangle(const Eigen::Matrix<V, 3, 1>& pt, const Eigen::Matrix<V, 3, 1>& v1, const Eigen::Matrix<V, 3, 1>& v2, const Eigen::Matrix<V, 3, 1>& v3);
 
   Eigen::Vector4f RegToAffine(const Eigen::Vector3f& v);
   Eigen::Vector3f AffineToReg(const Eigen::Vector4f& v);

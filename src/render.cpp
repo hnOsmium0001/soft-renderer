@@ -138,11 +138,14 @@ void SRender::Pipeline::DrawTriangles(
 
     for (int y = bbv1.y(); y <= bbv2.y(); ++y) {
       for (int x = bbv1.x(); x <= bbv2.x(); ++x) {
-        auto bc = SRender::Barycentric({x, y, 0, 0}, v1, v2, v3);
-        if (SRender::PtInTriangle({x, y, 0, 0}, v1, v2, v3)) {
+        Eigen::Vector3i iv1 = v1.head<3>();
+        Eigen::Vector3i iv2 = v2.head<3>();
+        Eigen::Vector3i iv3 = v3.head<3>();
+        if (SRender::PtInTriangle({x, y, 0}, iv1, iv2, iv3)) {
+          auto bc = SRender::Barycentric({x, y, 0}, iv1, iv2, iv3);
           float z = v1.z() * bc.x() + v2.z() * bc.y() + v3.z() * bc.z();
-          float w = v1.w() * bc.x() + v2.w() * bc.y() + v3.w() * bc.w();
-          auto cb = [&]() { return _fsh({x, y, z, w}); };
+          // float w = v1.w() * bc.x() + v2.w() * bc.y() + v3.w() * bc.w();
+          auto cb = [&]() { return _fsh({x, y, z, 0}); };
           frame.SetCb(x, y, z, cb);
         }
       }
@@ -234,32 +237,31 @@ N SRender::Map(N value, N fromMin, N fromMax, N toMin, N toMax)  {
   return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
 }
 
-template <class V, int S>
-Eigen::Matrix<V, S, 1> SRender::Barycentric(
-  const Eigen::Matrix<V, S, 1>& pt,
-  const Eigen::Matrix<V, S, 1>& v1,
-  const Eigen::Matrix<V, S, 1>& v2,
-  const Eigen::Matrix<V, S, 1>& v3
+template <class V>
+Eigen::Matrix<V, 3, 1> SRender::Barycentric(
+  const Eigen::Matrix<V, 3, 1>& pt,
+  const Eigen::Matrix<V, 3, 1>& v1,
+  const Eigen::Matrix<V, 3, 1>& v2,
+  const Eigen::Matrix<V, 3, 1>& v3
 ) {
   using Vec = Eigen::Matrix<V, 3, 1>;
   Vec u = Vec(v3.x() - v1.x(), v2.x() - v1.x(), v1.x() - pt.x())
     .cross(Vec(v3.y() - v1.y(), v2.y() - v1.y(), v1.y() - pt.y()));
 
-  if (std::abs(u.z()) < 1)
-    return Vec(-1, 1, 1);
-  else
-    return Vec(1.0f - (u.x() + u.y()) / u.z(), u.y() / u.z(), u.x() / u.z());
+  return std::abs(u.z()) < 1
+    ? Vec(-1, -1, -1)
+    : Vec(1.0f - (u.x() + u.y()) / u.z(), u.y() / u.z(), u.x() / u.z());
 }
 
-float Sign(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, Eigen::Vector3i p3) {
+float Sign(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, const Eigen::Vector3i& p3) {
   return (p1.x() - p3.x()) * (p2.y() - p3.y()) - (p2.x() - p3.x()) * (p1.y() - p3.y());
 }
-template <class V, int S>
+template <class V>
 bool SRender::PtInTriangle(
-  const Eigen::Matrix<V, S, 1>& pt,
-  const Eigen::Matrix<V, S, 1>& v1,
-  const Eigen::Matrix<V, S, 1>& v2,
-  const Eigen::Matrix<V, S, 1>& v3
+  const Eigen::Matrix<V, 3, 1>& pt,
+  const Eigen::Matrix<V, 3, 1>& v1,
+  const Eigen::Matrix<V, 3, 1>& v2,
+  const Eigen::Matrix<V, 3, 1>& v3
 ) {
   float d1 = Sign(pt, v1, v2);
   float d2 = Sign(pt, v2, v3);
