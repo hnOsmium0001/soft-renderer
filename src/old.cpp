@@ -65,20 +65,6 @@ void DrawTriangle(
   }
 }
 
-void DrawTriangles(
-  const std::vector<Eigen::Vector3i> &verts,
-  const std::vector<int> indices,
-  SRender::FrameBuffer &frame,
-  TGAColor color
-) {
-  assert(verts.size() >= 3);
-  assert(indices.size() % 3 == 0);
-
-  for(int i = 0; i < indices.size(); i += 3) {
-    DrawTriangle(verts[indices[i]], verts[indices[i + 1]], verts[indices[i + 2]], frame, color);
-  }
-}
-
 void DrawPolygon(
   const std::vector<Eigen::Vector3i>& verts,
   SRender::FrameBuffer& frame,

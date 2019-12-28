@@ -165,15 +165,22 @@ void DrawPipelineHeadModel(SRender::FrameBuffer& frame) {
     {0, 1, 0},
     {0, 0, 0}
   );
-  cam.Viewport(frame.width() / 8, frame.height() / 8, frame.width() * 3/4, frame.height() * 3/4);
+  cam.Viewport(
+    frame.width() / 8, frame.height() / 8,
+    frame.width() * 3/4, frame.height() * 3/4
+  );
+
+  Eigen::Vector3f lightVec(0, 0, -1);
 
   SRender::Pipeline pipeline;
   pipeline.BindShader([&](Eigen::Vector3f v) {
-    return Eigen::Vector4i();
+    return cam.Transform(v).cast<int>();
   });
-
-  // Environment
-  Eigen::Vector3f lightVec(0, 0, -1);
+  pipeline.BindShader([&](Eigen::Vector3i v, std::optional<const Eigen::Vector3f&> normal) {
+    float lv = normal.value().dot(lightVec);
+    int corrected = 255 * pow(lv, 1 / 2.2);
+    return TGAColor(corrected, corrected, corrected, 255);
+  });
 }
 
 int main(int argc, char** argv) {

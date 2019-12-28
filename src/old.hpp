@@ -17,9 +17,8 @@ void DrawTriangle(
   TGAColor color
 );
 
-void DrawTriangles(
-  const std::vector<Eigen::Vector3i> &verts,
-  const std::vector<int> indices,
-  SRender::FrameBuffer &frame,
+void DrawPolygon(
+  const std::vector<Eigen::Vector3i>& verts,
+  SRender::FrameBuffer& frame,
   TGAColor color
 );

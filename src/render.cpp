@@ -7,9 +7,7 @@
 #include "render.hpp"
 
 using Vector3fVec = std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>;
-using Vector4fVec = std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f>>;
 using Vector3iVec = std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>>;
-using Vector4iVec = std::vector<Eigen::Vector4i, Eigen::aligned_allocator<Eigen::Vector4i>>;
 
 SRender::FrameBuffer::FrameBuffer(int width, int height, int defaultZ)
 : _image{width, height, TGAImage::RGB}, _zBuffer(width * height, defaultZ) {
@@ -69,11 +67,11 @@ void SRender::Pipeline::BindShaders(VCallback vsh, FCallback fsh) {
   this->_fsh = fsh;
 }
 
-inline Vector4iVec ApplyVertexShader(
+inline Vector3iVec ApplyVertexShader(
   const Vector3fVec& vec,
   SRender::Pipeline::VCallback&& vsh
 ) {
-  Vector4iVec res(vec.size());
+  Vector3iVec res(vec.size());
   for(auto& v : vec) {
     res.push_back(vsh(v));
   }
@@ -85,7 +83,7 @@ void SRender::Pipeline::DrawLines(
   IndicesVector indices,
   FrameBuffer &frame
 ) {
-  Vector4iVec transformed = ApplyVertexShader(verts, std::forward<VCallback>(_vsh));
+  auto transformed = ApplyVertexShader(verts, std::forward<VCallback>(this->vsh()));
   for(size_t i = 0; i < indices.size(); i += 2) {
     auto v1 = transformed[i];
     auto v2 = transformed[i + 1];
@@ -104,8 +102,7 @@ void SRender::Pipeline::DrawLines(
       float t = (x - v1.x()) / static_cast<float>(v2.x() - v1.x());
       int y = v1.y() * (1.0f - t) + v2.y() * t;
       int z = v1.z() * (1.0f - t) + v2.z() * t;
-      int w = v1.w() * (1.0f - t) + v2.w() * t;
-      auto col = [&]() { return _fsh({x, y, z, w}); };
+      auto col = [&]() { return this->fsh()({x, y, z}, {}); };
       if(steep) {
         frame.SetCb(y, x, z, col);
       } else {
@@ -120,7 +117,7 @@ void SRender::Pipeline::DrawTriangles(
   IndicesVector indices,
   FrameBuffer &frame
 ) {
-  Vector4iVec transformed = ApplyVertexShader(verts, std::forward<VCallback>(_vsh));
+  auto transformed = ApplyVertexShader(verts, std::forward<VCallback>(this->vsh()));
   for(size_t i = 0; i < transformed.size(); i += 3) {
     auto v1 = transformed[i];
     auto v2 = transformed[i + 1];
@@ -138,14 +135,10 @@ void SRender::Pipeline::DrawTriangles(
 
     for (int y = bbv1.y(); y <= bbv2.y(); ++y) {
       for (int x = bbv1.x(); x <= bbv2.x(); ++x) {
-        Eigen::Vector3i iv1 = v1.head<3>();
-        Eigen::Vector3i iv2 = v2.head<3>();
-        Eigen::Vector3i iv3 = v3.head<3>();
-        if (SRender::PtInTriangle({x, y, 0}, iv1, iv2, iv3)) {
-          auto bc = SRender::Barycentric({x, y, 0}, iv1, iv2, iv3);
-          float z = v1.z() * bc.x() + v2.z() * bc.y() + v3.z() * bc.z();
-          // float w = v1.w() * bc.x() + v2.w() * bc.y() + v3.w() * bc.w();
-          auto cb = [&]() { return _fsh({x, y, z, 0}); };
+        if (SRender::PtInTriangle({x, y, 0}, v1, v2, v3)) {
+          auto bc = SRender::Barycentric({x, y, 0}, v1, v2, v3);
+          int z = v1.z() * bc.x() + v2.z() * bc.y() + v3.z() * bc.z();
+          auto cb = [&]() { return this->fsh()({x, y, z}); };
           frame.SetCb(x, y, z, cb);
         }
       }

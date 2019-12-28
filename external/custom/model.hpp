@@ -6,7 +6,7 @@
 class Model {
 private:
   std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> verts_;
-  std::vector<std::vector<int> > faces_;
+  std::vector<std::vector<int>> faces_;
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
