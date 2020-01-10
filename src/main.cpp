@@ -3,8 +3,8 @@
 #include <vector>
 #include <array>
 #include <memory>
-#include "../external/custom/tgaimage.hpp"
-#include "../external/custom/model.hpp"
+#include "tgaimage.hpp"
+#include "model.hpp"
 #include "render.hpp"
 #include "old.hpp"
 
@@ -176,7 +176,7 @@ void DrawPipelineHeadModel(SRender::FrameBuffer& frame) {
   pipeline.BindShader([&](Eigen::Vector3f v) {
     return cam.Transform(v).cast<int>();
   });
-  pipeline.BindShader([&](Eigen::Vector3i v, std::optional<const Eigen::Vector3f&> normal) {
+  pipeline.BindShader([&](Eigen::Vector3i v, std::optional<const Eigen::Vector3f> normal) {
     float lv = normal.value().dot(lightVec);
     int corrected = 255 * pow(lv, 1 / 2.2);
     return TGAColor(corrected, corrected, corrected, 255);
@@ -197,8 +197,8 @@ int main(int argc, char** argv) {
   // DrawSurfaceNormalColorModel(frame, true, false);
   // DrawSurfaceNormalColorModel(frame, false, true);
   // DrawSurfaceNormalColorModel(frame, true, true);
-  DrawCameraHeadModel(frame);
-  // DrawPipelineHeadModel(frame);
+  // DrawCameraHeadModel(frame);
+  DrawPipelineHeadModel(frame);
   frame.Write("./build/output.tga");
   SRender::debug::DumpZBufferTGAFull(frame);
 

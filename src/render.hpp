@@ -4,8 +4,8 @@
 #include <memory>
 #include <functional>
 #include <optional>
-#include "../external/eigen/Dense"
-#include "../external/custom/tgaimage.hpp"
+#include <Eigen/Dense>
+#include "tgaimage.hpp"
 
 namespace SRender {
 
@@ -44,7 +44,7 @@ namespace SRender {
   class Pipeline {
   public:
     using VCallback = std::function<auto(const Eigen::Vector3f&) -> Eigen::Vector3i>;
-    using FCallback = std::function<auto(const Eigen::Vector3i&, std::optional<const Eigen::Vector3f&>) -> TGAColor>;
+    using FCallback = std::function<auto(const Eigen::Vector3i&, std::optional<const Eigen::Vector3f>) -> TGAColor>;
     using VerticesVector = const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>&;
     using RefVerticesVector = const std::vector<const Eigen::Vector3f&>;
     using IndicesVector = const std::vector<int>&;
@@ -59,8 +59,8 @@ namespace SRender {
     void BindShader(FCallback fsh);
     void BindShaders(VCallback vsh, FCallback fsh);
     void DrawLines(VerticesVector verts, IndicesVector indices, FrameBuffer& frame);
-    void DrawTriangles(VerticesVector verts, IndicesVector indices, FrameBuffer& frame, bool computeNormal);
-    void DrawTriangleStrip(VerticesVector verts, IndicesVector indices, FrameBuffer& frame, bool computeNormal);
+    void DrawTriangles(VerticesVector verts, IndicesVector indices, FrameBuffer& frame);
+    void DrawTriangleStrip(VerticesVector verts, IndicesVector indices, FrameBuffer& frame);
     void DrawPolygon(VerticesVector verts, IndicesVector indices, FrameBuffer& frame);
 
     VCallback& vsh() { return _vsh; }

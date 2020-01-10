@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "../eigen/Dense"
+#include <Eigen/Dense>
 
 class Model {
 private:

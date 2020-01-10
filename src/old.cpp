@@ -1,5 +1,5 @@
 #include <vector>
-#include "../external/custom/tgaimage.hpp"
+#include "tgaimage.hpp"
 #include "render.hpp"
 #include "old.hpp"
 

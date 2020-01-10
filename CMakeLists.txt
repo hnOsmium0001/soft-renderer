@@ -9,16 +9,21 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/bin)
 
-add_subdirectory(external/custom/)
 include_directories(
-  external/eigen
+  external
 )
 
 add_executable(soft_renderer
+  src/model.hpp
+  src/model.cpp
+  src/tgaimage.hpp
+  src/tgaimage.cpp
+
   src/main.cpp
   src/render.hpp
   src/render.cpp
   src/old.hpp
   src/old.cpp
 )
-target_link_libraries(soft_renderer external_libraries)
+target_link_libraries(soft_renderer)
+

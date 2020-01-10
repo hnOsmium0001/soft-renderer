@@ -3,7 +3,11 @@
 #include <algorithm>
 #include <utility>
 #include <cstdint>
-#include "../external/custom/tgaimage.hpp"
+#include <vector>
+#include <memory>
+#include <functional>
+#include <optional>
+#include <Eigen/Dense>
 #include "render.hpp"
 
 using Vector3fVec = std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>;
@@ -102,7 +106,9 @@ void SRender::Pipeline::DrawLines(
       float t = (x - v1.x()) / static_cast<float>(v2.x() - v1.x());
       int y = v1.y() * (1.0f - t) + v2.y() * t;
       int z = v1.z() * (1.0f - t) + v2.z() * t;
-      auto col = [&]() { return this->fsh()({x, y, z}, {}); };
+      auto col = [&]() {
+        return this->fsh()({x, y, z}, std::nullopt);
+	  };
       if(steep) {
         frame.SetCb(y, x, z, col);
       } else {
@@ -138,7 +144,9 @@ void SRender::Pipeline::DrawTriangles(
         if (SRender::PtInTriangle({x, y, 0}, v1, v2, v3)) {
           auto bc = SRender::Barycentric({x, y, 0}, v1, v2, v3);
           int z = v1.z() * bc.x() + v2.z() * bc.y() + v3.z() * bc.z();
-          auto cb = [&]() { return this->fsh()({x, y, z}); };
+          auto cb = [&]() {
+		    return this->fsh()({x, y, z}, std::nullopt);
+		  };
           frame.SetCb(x, y, z, cb);
         }
       }
