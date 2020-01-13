@@ -1,18 +1,10 @@
-# Output directories
-build/
-tmp/
+/*
 
-external/*
-!external/custom/
+!src/
+!obj/
 
-# CMake stuff
-CMakeFiles/
-CMake*.txt
 !CMakeLists.txt
-*.cmake
+!run.sh
+!setup.sh
 
-Makefile
-*.kdev4
-
-# Core dumps
-core.*
+!.gitignore

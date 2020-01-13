@@ -197,8 +197,9 @@ int main(int argc, char** argv) {
   // DrawSurfaceNormalColorModel(frame, true, false);
   // DrawSurfaceNormalColorModel(frame, false, true);
   // DrawSurfaceNormalColorModel(frame, true, true);
+  DrawTeapot();
   // DrawCameraHeadModel(frame);
-  DrawPipelineHeadModel(frame);
+  // DrawPipelineHeadModel(frame);
   frame.Write("./build/output.tga");
   SRender::debug::DumpZBufferTGAFull(frame);
 

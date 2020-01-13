@@ -9,6 +9,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/bin)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include_directories(
   external
 )
@@ -26,4 +28,3 @@ add_executable(soft_renderer
   src/old.cpp
 )
 target_link_libraries(soft_renderer)
-
