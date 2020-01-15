@@ -92,7 +92,7 @@ inline Vector3iVec ApplyVertexShader(
 void SRender::Pipeline::DrawLines(
   VerticesVector verts,
   IndicesVector indices,
-  FrameBuffer &frame
+  FrameBuffer& frame
 ) {
   auto transformed = ApplyVertexShader(verts, std::forward<VCallback>(this->vsh()));
   for(size_t i = 0; i < indices.size(); i += 2) {
@@ -128,7 +128,7 @@ void SRender::Pipeline::DrawLines(
 void SRender::Pipeline::DrawTriangles(
   VerticesVector verts,
   IndicesVector indices,
-  FrameBuffer &frame
+  FrameBuffer& frame
 ) {
   auto transformed = ApplyVertexShader(verts, std::forward<VCallback>(this->vsh()));
   for(size_t i = 0; i < transformed.size(); i += 3) {
@@ -164,7 +164,7 @@ void SRender::Pipeline::DrawTriangles(
 void SRender::Pipeline::DrawTriangleStrip(
   VerticesVector verts,
   IndicesVector indices,
-  FrameBuffer &frame
+  FrameBuffer& frame
 ) {
   std::vector<int> trIdx((indices.size() - 2) * 3);
   int lastTwo = indices[0];
@@ -287,7 +287,7 @@ Eigen::Vector3f SRender::AffineToReg(const Eigen::Vector4f &v) {
   return v.head<3>() / v.w();
 }
 
-void SRender::debug::DumpZBufferConsole(SRender::FrameBuffer& target) {
+void SRender::Debug::DumpZBufferConsole(SRender::FrameBuffer& target) {
   for (int x = 0; x < target.width(); ++x) {
     for (int y = 0; y < target.height(); ++y) {
       int z = target.zBuffer()[x + y * target.width()];
@@ -297,7 +297,7 @@ void SRender::debug::DumpZBufferConsole(SRender::FrameBuffer& target) {
   }
 }
 
-void SRender::debug::DumpZBufferTGASimple(SRender::FrameBuffer& target) {
+void SRender::Debug::DumpZBufferTGASimple(SRender::FrameBuffer& target) {
   SRender::FrameBuffer frame(target.width(), target.height(), 0);
   frame.SetDepthTest(false);
   frame.setDepthWrite(false);
@@ -310,7 +310,7 @@ void SRender::debug::DumpZBufferTGASimple(SRender::FrameBuffer& target) {
   frame.Write("./build/zdump.tga");
 }
 
-void SRender::debug::DumpZBufferTGAFull(SRender::FrameBuffer& target) {
+void SRender::Debug::DumpZBufferTGAFull(SRender::FrameBuffer& target) {
   SRender::FrameBuffer frame(target.width(), target.height(), 0);
   frame.SetDepthTest(false);
   frame.setDepthWrite(false);
@@ -335,4 +335,80 @@ void SRender::debug::DumpZBufferTGAFull(SRender::FrameBuffer& target) {
 
   end:
   frame.Write("./build/zdump.tga");
+}
+
+void SRender::Raster::DrawLine(
+  const Eigen::Vector3i& v1In,
+  const Eigen::Vector3i& v2In,
+  SRender::FrameBuffer& frame,
+  TGAColor color
+) {
+  auto v1 = v1In;
+  auto v2 = v2In;
+
+  // Swapping is safe because pass-by-value
+  bool steep = false;
+  if (std::abs(v1.x() - v2.x()) < std::abs(v1.y() - v2.y())) {
+    std::swap(v1.x(), v1.y());
+    std::swap(v2.x(), v2.y());
+    steep = true;
+  }
+  if(v1.x() > v2.x()) {
+    std::swap(v1, v2);
+  }
+  for(int x = v1.x(); x <= v2.x(); ++x) {
+    float t = (x - v1.x()) / static_cast<float>(v2.x() - v1.x());
+    int y = v1.y() * (1.0 - t) + v2.y() * t;
+    int z = v1.z() * (1.0 - t) + v2.z() * t;
+    if(steep) {
+      frame.Set(y ,x, z, color);
+    } else {
+      frame.Set(x, y, z, color);
+    }
+  }
+}
+
+void SRender::Raster::DrawTriangle(
+  const Eigen::Vector3i& v1,
+  const Eigen::Vector3i& v2,
+  const Eigen::Vector3i& v3,
+  SRender::FrameBuffer& frame,
+  TGAColor color
+) {
+  // Stands for "Boudning Box Vertex 1/2"
+  Eigen::Vector2i bbv1 {
+    std::max(0, std::min({v1.x(), v2.x(), v3.x()})),
+    std::max(0, std::min({v1.y(), v2.y(), v3.y()}))
+  };
+  Eigen::Vector2i bbv2 {
+    std::min(frame.width(), std::max({v1.x(), v2.x(), v3.x()})),
+    std::min(frame.height(), std::max({v1.y(), v2.y(), v3.y()}))
+  };
+
+  for(int y = bbv1.y(); y <= bbv2.y(); ++y) {
+    for(int x = bbv1.x(); x <= bbv2.x(); ++x) {
+      auto bc = SRender::Barycentric({x, y, 0}, v1, v2, v3);
+      if(SRender::PtInTriangle({x, y, 0}, v1, v2, v3)) {
+        float z =
+          v1.z() * bc.x() +
+          v2.z() * bc.y() +
+          v3.z() * bc.z();
+        frame.Set(x, y, z, color);
+      }
+    }
+  }
+}
+
+void SRender::Raster::DrawPolygon(
+  const std::vector<Eigen::Vector3i>& verts,
+  SRender::FrameBuffer& frame,
+  TGAColor color
+) {
+  assert(verts.size() >= 3);
+
+  auto lastOne = &verts[1];
+  for(auto it = std::next(verts.begin(), 2); it != verts.end(); ++it) {
+    SRender::Raster::DrawTriangle(verts[0], *lastOne, *it, frame, color);
+    lastOne = &*it;
+  }
 }

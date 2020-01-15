@@ -107,11 +107,34 @@ namespace SRender {
   Eigen::Vector4f RegToAffine(const Eigen::Vector3f& v);
   Eigen::Vector3f AffineToReg(const Eigen::Vector4f& v);
 
-  namespace debug {
+  namespace Debug {
 
     void DumpZBufferConsole(FrameBuffer& target);
     void DumpZBufferTGASimple(FrameBuffer& target);
     void DumpZBufferTGAFull(FrameBuffer& target);
 
+  }
+
+  namespace Raster {
+    void DrawLine(
+      const Eigen::Vector3i& v1In,
+      const Eigen::Vector3i& v2In,
+      SRender::FrameBuffer& frame,
+      TGAColor color
+    );
+
+    void DrawTriangle(
+      const Eigen::Vector3i& v1,
+      const Eigen::Vector3i& v2,
+      const Eigen::Vector3i& v3,
+      SRender::FrameBuffer& frame,
+      TGAColor color
+    );
+
+    void DrawPolygon(
+      const std::vector<Eigen::Vector3i>& verts,
+      SRender::FrameBuffer& frame,
+      TGAColor color
+    );
   }
 }

@@ -24,7 +24,5 @@ add_executable(soft_renderer
   src/main.cpp
   src/render.hpp
   src/render.cpp
-  src/old.hpp
-  src/old.cpp
 )
 target_link_libraries(soft_renderer)
