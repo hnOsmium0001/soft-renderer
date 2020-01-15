@@ -26,8 +26,15 @@ int SRender::FrameBuffer::Test(int x, int y, int z) {
   if(x < 0 || y < 0 || x >= width() || y >= height()) {
     return -1;
   }
-  int i = x * width() + y;
-  return !enableDepthTest || _zBuffer[i] < z ? i : -1;
+  
+  int i = x + y * width();
+  if(!enableDepthTest) {
+    // Always able to write
+    // Return the actual z value in case depth write is enabled
+    return _zBuffer[i];
+  } else {
+    return _zBuffer[i] <= z ? i : -1;
+  }
 }
 
 int SRender::FrameBuffer::Test(const Eigen::Vector3i &v) {
@@ -36,7 +43,7 @@ int SRender::FrameBuffer::Test(const Eigen::Vector3i &v) {
 
 void SRender::FrameBuffer::Set(int x, int y, int z, TGAColor color) {
   int i = this->Test(x, y, z);
-  if(i > 0) {
+  if(i != -1) {
     _image.set(x, y, color);
     if(enableDepthWrite) _zBuffer[i] = z;
   }

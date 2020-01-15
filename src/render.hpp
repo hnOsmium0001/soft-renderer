@@ -33,10 +33,10 @@ namespace SRender {
     // Getters
     int width() { return _image.get_width(); }
     int height() { return _image.get_width(); }
-    TGAImage& image() { return this->_image; }
-    const TGAImage& image() const { return this->_image; }
-    std::vector<int>& zBuffer() { return this->_zBuffer; }
-    const std::vector<int>& zBuffer() const { return this->_zBuffer; }
+    TGAImage& image() { return _image; }
+    const TGAImage& image() const { return _image; }
+    std::vector<int>& zBuffer() { return _zBuffer; }
+    const std::vector<int>& zBuffer() const { return _zBuffer; }
   };
 
   // Render pipline for 2D and 3D rendering

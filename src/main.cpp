@@ -186,14 +186,12 @@ void DrawPipelineHeadModel(SRender::FrameBuffer& frame) {
 int main(int argc, char** argv) {
   std::cout << "Soft Renderer" << std::endl;
 
-  // DrawTeapot();
-  // return 0;
-
   SRender::FrameBuffer frame(800, 800);
   // DrawDepthTestingDemo(frame);
   // Draw3DTrianglesTopDown(frame);
   // DrawWireframeModel(frame);
   // DrawRandomColorModel(frame);
+  // DrawSurfaceNormalColorModel(frame, false, false);
   // DrawSurfaceNormalColorModel(frame, true, false);
   // DrawSurfaceNormalColorModel(frame, false, true);
   // DrawSurfaceNormalColorModel(frame, true, true);
