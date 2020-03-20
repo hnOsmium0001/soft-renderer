@@ -1,5 +1,8 @@
-cmake .
+mkdir build
+cd build
+
+cmake ..
 make
-./build/bin/soft_renderer
+./bin/soft_renderer
 
 find ./build -name "*.tga" -exec convert {} {}-convert-output.png \;
