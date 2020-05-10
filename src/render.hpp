@@ -11,8 +11,8 @@ namespace SRender {
 
 	class FrameBuffer {
 	private:
-		TGAImage _image;
-		std::vector<int> _zBuffer;
+		TGAImage image_;
+		std::vector<int> zBuffer_;
 
 		bool enableDepthTest = true;
 		bool enableDepthWrite = true;
@@ -31,12 +31,12 @@ namespace SRender {
 		void setDepthWrite(bool enable) { enableDepthWrite = enable; }
 
 		// Getters
-		int width() { return _image.get_width(); }
-		int height() { return _image.get_width(); }
-		TGAImage& image() { return _image; }
-		const TGAImage& image() const { return _image; }
-		std::vector<int>& zBuffer() { return _zBuffer; }
-		const std::vector<int>& zBuffer() const { return _zBuffer; }
+		int width() { return image_.get_width(); }
+		int height() { return image_.get_width(); }
+		TGAImage& image() { return image_; }
+		const TGAImage& image() const { return image_; }
+		std::vector<int>& zBuffer() { return zBuffer_; }
+		const std::vector<int>& zBuffer() const { return zBuffer_; }
 	};
 
 	// Render pipline for 2D and 3D rendering
@@ -50,8 +50,8 @@ namespace SRender {
 		using IndicesVector = const std::vector<int>&;
 
 	private:
-		VCallback _vsh;
-		FCallback _fsh;
+		VCallback vsh_;
+		FCallback fsh_;
 
 	public:
 		Pipeline() = default;
@@ -63,19 +63,19 @@ namespace SRender {
 		void DrawTriangleStrip(VerticesVector verts, IndicesVector indices, FrameBuffer& frame);
 		void DrawPolygon(VerticesVector verts, IndicesVector indices, FrameBuffer& frame);
 
-		VCallback& vsh() { return _vsh; }
-		const VCallback& vsh() const { return _vsh; }
-		FCallback& fsh() { return _fsh; }
-		const FCallback& fsh() const { return _fsh; }
+		VCallback& vsh() { return vsh_; }
+		const VCallback& vsh() const { return vsh_; }
+		FCallback& fsh() { return fsh_; }
+		const FCallback& fsh() const { return fsh_; }
 	};
 
 	// 3D specific rendering
 
 	class Camera {
 	private:
-		Eigen::Matrix4f _view;
-		Eigen::Matrix4f _projection;
-		Eigen::Matrix4f _viewport;
+		Eigen::Matrix4f view_;
+		Eigen::Matrix4f projection_;
+		Eigen::Matrix4f viewport_;
 
 	public:
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -83,14 +83,15 @@ namespace SRender {
 		Camera();
 		void LookAt(const Eigen::Vector3f& eye, const Eigen::Vector3f& up, const Eigen::Vector3f& center);
 		void Viewport(int x, int y, int w, int h);
+		void Perspective(float fov, float aspect, float near, float far);
 		Eigen::Vector3f Transform(const Eigen::Vector3f& pt);
 
-		Eigen::Matrix4f& view() { return _view; }
-		const Eigen::Matrix4f& view() const { return _view; }
-		Eigen::Matrix4f& projection() { return _projection; }
-		const Eigen::Matrix4f& projection() const { return _projection; }
-		Eigen::Matrix4f& viewport() { return _viewport; }
-		const Eigen::Matrix4f& viewport() const { return _viewport; }
+		Eigen::Matrix4f& view() { return view_; }
+		const Eigen::Matrix4f& view() const { return view_; }
+		Eigen::Matrix4f& projection() { return projection_; }
+		const Eigen::Matrix4f& projection() const { return projection_; }
+		Eigen::Matrix4f& viewport() { return viewport_; }
+		const Eigen::Matrix4f& viewport() const { return viewport_; }
 	};
 
 	// Misc utilities

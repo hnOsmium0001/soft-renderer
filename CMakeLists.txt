@@ -5,15 +5,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(SoftRenderer)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include_directories(
-	external
-)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
 
+include_directories(
+	src
+)
 add_executable(soft_renderer
 	src/model.hpp
 	src/model.cpp
@@ -24,6 +23,6 @@ add_executable(soft_renderer
 	src/render.hpp
 	src/render.cpp
 )
-target_link_libraries(soft_renderer)
+target_link_libraries(soft_renderer ${CONAN_LIBS})
 
 file(COPY obj/ DESTINATION ./obj)
