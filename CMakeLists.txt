@@ -14,14 +14,15 @@ include_directories(
 	src
 )
 add_executable(soft_renderer
-	src/model.hpp
-	src/model.cpp
-	src/tgaimage.hpp
-	src/tgaimage.cpp
-
-	src/main.cpp
-	src/render.hpp
-	src/render.cpp
+	src/Util.hpp
+	src/Util.cpp
+	src/Model.hpp
+	src/Model.cpp
+	src/TGAImage.hpp
+	src/TGAImage.cpp
+	src/Render.hpp
+	src/Render.cpp
+	src/Main.cpp
 )
 target_link_libraries(soft_renderer ${CONAN_LIBS})
 
