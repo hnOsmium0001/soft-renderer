@@ -1,6 +1,8 @@
 #pragma once
 
+#include <functional>
 #include <vector>
+#include <span>
 #include <Eigen/Dense>
 #include <tl/expected.hpp>
 #include "Util.hpp"
@@ -26,38 +28,57 @@ public:
 	auto Set(u32 x, u32 y, TGAColor color) -> bool;
 	auto GetDepth(u32 x, u32 y) const -> f32;
 	auto SetDepth(u32 x, u32 y, f32 z) -> void;
+	
+	auto RenderTriangle(
+		const Eigen::Vector3f& p1,
+		const Eigen::Vector3f& p2,
+		const Eigen::Vector3f& p3,
+		const std::function<auto(const Eigen::Vector2f&) -> TGAColor>& frag
+	) -> void;
+
+	auto RenderTriangles(
+		std::span<Eigen::Vector3f> vertices,
+		std::span<usize> indices,
+		const std::function<auto(const Eigen::Vector2f&) -> TGAColor>& frag
+	) -> void;
+
+	auto RenderLine(
+		const Eigen::Vector3f& a,
+		const Eigen::Vector3f& b,
+		TGAColor color
+	) -> void;
+
+	auto GetWidth() const -> u32 { return image.GetWidth(); }
+	auto GetHeight() const -> u32 { return image.GetHeight(); }
 };
 
-class MaskFrameBuffer : public FrameBuffer {
+class RenderBuffer : public FrameBuffer {
 public:
 	bool depthTest;
 	bool depthMask;
 
 public:
-	MaskFrameBuffer(u32 width, u32 height);
-	MaskFrameBuffer(const MaskFrameBuffer&) = default;
-	MaskFrameBuffer& operator=(const MaskFrameBuffer&) = default;
-	MaskFrameBuffer(MaskFrameBuffer&&) = default;
-	MaskFrameBuffer& operator=(MaskFrameBuffer&&) = default;
+	RenderBuffer(u32 width, u32 height);
+	RenderBuffer(const RenderBuffer&) = default;
+	RenderBuffer& operator=(const RenderBuffer&) = default;
+	RenderBuffer(RenderBuffer&&) = default;
+	RenderBuffer& operator=(RenderBuffer&&) = default;
 
-	auto Get(u32 x, u32 y) const -> TGAColor;
 	auto Set(u32 x, u32 y, f32 z, TGAColor color) -> void;
 };
 
-template <class V>
-Eigen::Matrix<V, 3, 1> Barycentric(
-	const Eigen::Matrix<V, 3, 1>& pt,
-	const Eigen::Matrix<V, 3, 1>& v1,
-	const Eigen::Matrix<V, 3, 1>& v2,
-	const Eigen::Matrix<V, 3, 1>& v3
-) {
-	using Vec = Eigen::Matrix<V, 3, 1>;
-	Vec u = Vec(v3.x() - v1.x(), v2.x() - v1.x(), v1.x() - pt.x())
-		.cross(Vec(v3.y() - v1.y(), v2.y() - v1.y(), v1.y() - pt.y()));
+auto Barycentric(
+	const Eigen::Vector3f& pt,
+	const Eigen::Vector3f& v1,
+	const Eigen::Vector3f& v2,
+	const Eigen::Vector3f& v3
+) -> Eigen::Vector3f;
 
-	return std::abs(u.z()) < 1
-		? Vec(-1, -1, -1)
-		: Vec(1.0f - (u.x() + u.y()) / u.z(), u.y() / u.z(), u.x() / u.z());
-}
+auto Barycentric(
+	const Eigen::Vector2f& pt,
+	const Eigen::Vector2f& v1,
+	const Eigen::Vector2f& v2,
+	const Eigen::Vector2f& v3
+) -> Eigen::Vector3f;
 
 } // namespace SRender

@@ -1,12 +1,26 @@
 #include <array>
+#include <tuple>
 #include <unordered_map>
 #include "Model.hpp"
 
 using namespace SRender;
 
-auto Mesh::ReadOBJ(Mesh &target, std::istream& data) -> void {
+template<>
+struct std::hash<Vertex> {
+	usize operator()(const Vertex& vert) const {
+		usize seed = 0;
+		seed ^= MatrixHash<Eigen::Vector3f>()(vert.pos) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= MatrixHash<Eigen::Vector3f>()(vert.normal) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= MatrixHash<Eigen::Vector2f>()(vert.uv) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		return seed;
+	}
+};
+
+auto Mesh::ReadOBJ(std::istream& data) -> Mesh {
 	using Vec3fVec = std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>;
 	using Vec2fVec = std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f>>;
+
+	auto mesh = Mesh{};
 
 	char ctrash;
 	Vec3fVec posBuf;
@@ -14,8 +28,6 @@ auto Mesh::ReadOBJ(Mesh &target, std::istream& data) -> void {
 	Vec2fVec uvBuf;
 	std::unordered_map<Vertex, u32> knownVerts;
 	u32 nextID = 0;
-	auto& indices = target.indices;
-	auto& vertices = target.vertices;
 
 	std::string line;
 	while (std::getline(data, line)) {
@@ -69,25 +81,25 @@ auto Mesh::ReadOBJ(Mesh &target, std::istream& data) -> void {
 					++nextID;
 				}
 			}
-			indices.insert(indices.end(), tri.begin(), tri.end());
+			mesh.indices.insert(mesh.indices.end(), tri.begin(), tri.end());
 		} else if (start == "g") {
 		}
 	}
 
-	vertices.reserve(knownVerts.size());
+	mesh.vertices.reserve(knownVerts.size());
 	for (const auto& [vert, idx]: knownVerts) {
-		vertices.push_back(vert);
+		mesh.vertices.push_back(vert);
 	}
 }
 
-auto Mesh::ReadOBJ(Mesh &target, std::string_view data) -> void {
-	std::istringstream iss(data);
-	ReadOBJ(target, iss);
+auto Mesh::ReadOBJ(std::string_view fileContent) -> Mesh {
+	std::istringstream iss(fileContent.data());
+	return ReadOBJ(iss);
 }
 
-auto Mesh::ReadOBJAt(Mesh &target, std::string_view path) -> void {
+auto Mesh::ReadOBJAt(std::string_view path) -> Mesh {
 	std::ifstream ifs;
 	ifs.open(path);
 	if (!ifs) return;
-	ReadOBJ(target, ifs);
+	return ReadOBJ(ifs);
 }
