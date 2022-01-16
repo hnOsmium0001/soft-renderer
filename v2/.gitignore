@@ -35,7 +35,9 @@ Thumbs.db
 /.qmake.cache
 /.qmake.stash
 
-.vscode/c_cpp_properties.json
+.vscode/
+.vs/
+.idea/
 
 # qtcreator generated files
 *.pro.user*
