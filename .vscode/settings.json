@@ -1,0 +1,9 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/v2",
+    "cmake.buildDirectory": "${workspaceFolder}/v2/build",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/v2",
+        "--clang-tidy",
+        "--inlay-hints",
+    ],
+}

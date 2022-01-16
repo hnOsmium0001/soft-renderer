@@ -108,7 +108,7 @@ PointerAlignment: Left
 # SpacesInParentheses: false
 # SpacesInSquareBrackets: false
 TabWidth:        4
-UseTab:          Always
+UseTab:          Never
 ---
 ### C++ specific config ###
 Language:        Cpp

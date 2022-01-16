@@ -76,3 +76,5 @@ CMakeLists.txt.user*
 
 # Build
 build/
+.cache/
+compile_commands.json
