@@ -1,26 +1,35 @@
 #pragma once
 
+#include "Color.hpp"
+
+#include <functional>
 #include <glm/glm.hpp>
 
-struct Line {
-	union {
-		struct {
-			glm::vec2 v1;
-			glm::vec2 v2;
-		};
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 normal;
+    glm::vec2 uv;
+    RgbaColor color;
 
-		glm::vec2 vertices[2];
-	};
+    bool operator==(const Vertex&) const = default;
+};
+
+template <>
+struct std::hash<Vertex> {
+    size_t operator()(const Vertex& vert) const;
+};
+
+struct Line {
+    glm::vec3 vertices[2];
 };
 
 struct Triangle {
-	union {
-		struct {
-			glm::vec2 v1;
-			glm::vec2 v2;
-			glm::vec2 v3;
-		};
+    glm::vec3 vertices[3];
 
-		glm::vec2 vertices[3];
-	};
+    static glm::vec3 CalcBarycentric(const glm::vec3& pt, const glm::vec3 vertices[3]);
+    glm::vec3 CalcBarycentric(const glm::vec3& pt) const;
+
+    // Note: ignores Z value
+    static bool ContainsPoint(glm::vec2 pt, const glm::vec3 vertices[3]);
+    bool ContainsPoint(glm::vec2 pt) const;
 };

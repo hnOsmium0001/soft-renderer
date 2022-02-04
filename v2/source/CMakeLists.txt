@@ -6,7 +6,6 @@ add_executable(${SUBPROJECT_EXECUTABLE}
     Macros.hpp
     Margin.hpp
     Math.hpp
-    PodVector.hpp
     Rect.hpp
     ScopeGuard.hpp
     Size.hpp
