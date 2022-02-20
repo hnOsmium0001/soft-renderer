@@ -1,5 +1,7 @@
 #include "Mesh.hpp"
 
+#include "Color.hpp"
+
 #include <fstream>
 #include <unordered_map>
 #include <vector>
@@ -53,9 +55,10 @@ void Mesh::ReadObj(std::istream& data) {
                 --it;
                 --in;
                 auto candidate = Vertex{
-                    posBuf[iv],
-                    normalBuf.empty() ? glm::vec3{} : normalBuf[in],
-                    uvBuf.empty() ? glm::vec2{} : uvBuf[it]
+                    .pos = posBuf[iv],
+                    .normal = normalBuf.empty() ? glm::vec3{} : normalBuf[in],
+                    .uv = uvBuf.empty() ? glm::vec2{} : uvBuf[it],
+                    .color = RgbaColor(255, 255, 255), // TODO
                 };
 
                 auto iter = knownVerts.find(candidate);

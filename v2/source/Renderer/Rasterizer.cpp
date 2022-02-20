@@ -12,10 +12,22 @@ FrameBuffer::FrameBuffer(Size2<int> dimensions) {
     Resize(dimensions);
 }
 
+void FrameBuffer::Refresh(const RefreshOp& op) {
+    this->dimensions = op.newDim;
+    pixels.resize(dimensions.Area(), op.color);
+    depths.resize(dimensions.Area(), op.depth);
+}
+
 void FrameBuffer::Resize(Size2<int> dimensions) {
-    this->dimensions = dimensions;
-    pixels.resize(dimensions.Area(), RgbaColor(0, 0, 0));
-    depths.resize(dimensions.Area());
+    Refresh({ .newDim = dimensions });
+}
+
+void FrameBuffer::ClearColor(RgbaColor color) {
+    std::fill(pixels.begin(), pixels.end(), color);
+}
+
+void FrameBuffer::ClearDepth(float depth) {
+    std::fill(depths.begin(), depths.end(), depth);
 }
 
 RgbaColor FrameBuffer::GetPixel(glm::ivec2 pos) const {
@@ -28,6 +40,14 @@ void FrameBuffer::SetPixel(glm::ivec2 pos, float z, RgbaColor color) {
         pixels[idx] = color;
         depths[idx] = z;
     }
+}
+
+FrameBuffer& Rasterizer::GetTarget() const {
+    return *this->framebuffer;
+}
+
+void Rasterizer::SetTarget(FrameBuffer& framebuffer) {
+    this->framebuffer = &framebuffer;
 }
 
 void Rasterizer::DrawLine(const glm::vec3 vertices[2], RgbaColor color) {
@@ -133,12 +153,12 @@ void Rasterizer::DrawRectangle(const Rect<float>& rect, float z) {
 void Rasterizer::DrawMesh(const Camera& camera, const Mesh& mesh) {
     for (size_t i = 0; i < mesh.indices.size(); i += 3) {
         glm::vec3 positions[] = {
-            mesh.vertices[i].pos,
-            mesh.vertices[i + 1].pos,
-            mesh.vertices[i + 2].pos,
+            camera.TransformPos(mesh.vertices[i + 0].pos),
+            camera.TransformPos(mesh.vertices[i + 1].pos),
+            camera.TransformPos(mesh.vertices[i + 2].pos),
         };
         RgbaColor colors[] = {
-            mesh.vertices[i].color,
+            mesh.vertices[i + 0].color,
             mesh.vertices[i + 1].color,
             mesh.vertices[i + 2].color,
         };

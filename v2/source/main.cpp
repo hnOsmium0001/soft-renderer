@@ -19,7 +19,14 @@ static void GlfwErrorCallback(int error, const char* description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-int main() {
+int main(int argc, const char* argv[]) {
+    // Assume the first element is the executable name
+    if (argc > 1) {
+        printf("Running in headless mode...\n");
+        // TODO headless mode
+        return 0;
+    }
+
     if (!glfwInit()) {
         return -1;
     }

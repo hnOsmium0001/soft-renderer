@@ -18,7 +18,18 @@ public:
     FrameBuffer();
     FrameBuffer(Size2<int> dimensions);
 
+    struct RefreshOp {
+        Size2<int> newDim = { 0, 0 };
+        RgbaColor color = RgbaColor(0, 0, 0);
+        float depth = 0.0f;
+    };
+    void Refresh(const RefreshOp& op);
+
+#if 1 // Specialized functions for refershing part of the framebuffer
     void Resize(Size2<int> dimensions);
+    void ClearColor(RgbaColor color);
+    void ClearDepth(float depth);
+#endif
 
     RgbaColor GetPixel(glm::ivec2 pos) const;
     void SetPixel(glm::ivec2 pos, float z, RgbaColor color);

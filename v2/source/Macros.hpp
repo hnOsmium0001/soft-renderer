@@ -15,9 +15,9 @@
 #define UNUSED(x) (void)x;
 
 #if defined(_MSC_VER)
-#	define UNREACHABLE __assume(0)
+#    define UNREACHABLE __assume(0)
 #elif defined(__GNUC__) || defined(__clang__)
-#	define UNREACHABLE __builtin_unreachable()
+#    define UNREACHABLE __builtin_unreachable()
 #else
-#	define UNREACHABLE
+#    define UNREACHABLE
 #endif
