@@ -4,7 +4,7 @@ package demo.softrenderer;
 //       AAAAAAAARRRRRRRRGGGGGGGGBBBBBBBB <-- int, 32 bits
 //       \-8bit-/\-8bit-/\-8bit-/\-8bit-/
 // Note: stored pixels in a single, packed array should help cache locality
-public class Bitmap {
+public final class Bitmap {
     public int[] pixels;
     public int width;
     public int height;
@@ -15,8 +15,12 @@ public class Bitmap {
         this.height = height;
     }
 
-    public int getIndex(int x, int y) {
-        return y * width + x;
+    public int getPixel(int x, int y) {
+        return pixels[y * width + x];
+    }
+
+    public void setPixel(int x, int y, int packedColor) {
+        pixels[y * width + x] = packedColor;
     }
 
     public static int getPackedColor(int alpha, int red, int green, int blue) {
