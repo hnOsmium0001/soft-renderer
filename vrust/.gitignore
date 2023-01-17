@@ -1,0 +1,10 @@
+*
+
+!src/
+!src/*
+
+!.gitignore
+!.editorconfig
+!README.md
+!Cargo.toml
+!Cargo.lock
