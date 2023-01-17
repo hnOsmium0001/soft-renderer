@@ -18,9 +18,6 @@ public:
     ~App();
 
     void Show();
-    void ShowRendererEditor();
-    void ShowModelEditor();
-    void ShowTriangleEditor();
 
     void RenderFrame();
     void ResizeCanvas(Size2<int> newSize);
