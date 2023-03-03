@@ -15,9 +15,9 @@
 #include <type_traits>
 
 namespace {
-enum CurrentScene {
-    ModelScene,
-    TrianglesScene,
+enum SceneType {
+    Model,
+    Triangles,
 };
 
 class ISceneData {
@@ -58,23 +58,29 @@ void UploadTexture(GLuint texture, const RgbaColor pixels[], Size2<int> size) {
 
 struct App::Private {
     std::array<FrameBuffer, 2> canvases;
+    FrameBuffer canvas;
     Rasterizer rasterizer;
     Size2<int> canvasSize;
     GLuint texture;
     int displaying = 0;
     int drawing = 0 + 1;
     RgbaColor clearColor = RgbaColor(0, 0, 0);
-    CurrentScene currScene = CurrentScene::ModelScene;
+    SceneType currSceneType = SceneType::Model;
 
     RenderData rd;
     TriangleSceneData tsd;
 
     bool clearColorChanged = false;
 
+    Private() {
+        // Bind initial render target
+        rasterizer.SetTarget(&canvases[drawing]);
+    }
+
     const ISceneData& GetCurrentScene() const {
-        switch (currScene) {
-            case CurrentScene::ModelScene: return rd;
-            case CurrentScene::TrianglesScene: return tsd;
+        switch (currSceneType) {
+            case SceneType::Model: return rd;
+            case SceneType::Triangles: return tsd;
         }
         UNREACHABLE;
     }
@@ -83,21 +89,22 @@ struct App::Private {
         return const_cast<ISceneData&>(const_cast<const Private*>(this)->GetCurrentScene());
     }
 
-    void RenderFrame() {
+    // TODO move the double buffering logic to a separate class dedicated to continuous rendering, this here is just for static demos, no need for such a complex system
+
+    void RenderCurrentScene() {
         auto& canvas = canvases[drawing];
+
         if (clearColorChanged) {
             canvas.ClearColor(clearColor);
         }
 
-        switch (currScene) {
-            case CurrentScene::ModelScene: {
+        switch (currSceneType) {
+            case SceneType::Model: {
                 // TODO move rendering to other thread
-                rasterizer.SetTarget(canvas);
                 rasterizer.DrawMesh(rd.camera, *rd.mesh);
             } break;
 
-            case CurrentScene::TrianglesScene: {
-                rasterizer.SetTarget(canvas);
+            case SceneType::Triangles: {
                 for (int i = 0, di = 0; i < tsd.scene.positions.size(); ++i, di += 3) {
                     auto positions = &tsd.scene.positions[i];
                     auto colors = &tsd.scene.colors[di];
@@ -106,6 +113,11 @@ struct App::Private {
                 }
             } break;
         }
+    }
+
+    void SwapBuffers() {
+        auto& canvas = canvases[drawing];
+
         ::UploadTexture(texture, canvas.pixels.data(), canvasSize);
 
         displaying = (displaying + 1) % canvases.size();
@@ -113,14 +125,14 @@ struct App::Private {
     }
 
     void ShowRendererEditor() {
-        constexpr EnumElement<CurrentScene> kScenes[] = {
-            { "Model scene", CurrentScene::ModelScene },
-            { "Triangles scene", CurrentScene::TrianglesScene },
+        constexpr EnumElement<SceneType> kScenes[] = {
+            { "Model scene", SceneType::Model },
+            { "Triangles scene", SceneType::Triangles },
         };
-        if (ImGui::BeginCombo("Scene", kScenes[currScene].name)) {
+        if (ImGui::BeginCombo("Scene", kScenes[currSceneType].name)) {
             for (auto& elm : kScenes) {
-                if (ImGui::Selectable(elm.name, currScene == elm.value)) {
-                    currScene = elm.value;
+                if (ImGui::Selectable(elm.name, currSceneType == elm.value)) {
+                    currSceneType = elm.value;
                 }
             }
             ImGui::EndCombo();
@@ -151,11 +163,48 @@ struct App::Private {
 
         bool readyToRender = currScene.IsReady();
         if (ImGui::Button("Render frame", !readyToRender)) {
-            RenderFrame();
+            RenderCurrentScene();
+            SwapBuffers();
         }
         if (!readyToRender) {
             ImGui::SameLine();
             ImGui::TextUnformatted("The current scene is invalid");
+        }
+    }
+
+    struct {
+        struct {
+            ImVec2 ptBegin;
+            ImVec2 ptEnd;
+            ImVec4 color;
+        } line;
+
+        struct ImVec2 {
+
+        } triangle;
+    } data_ShowRendererOneOffTools;
+
+    void ShowRendererOneOffTools() {
+        auto& dd = data_ShowRendererOneOffTools;
+
+        if (ImGui::CollapsingHeader("Line")) {
+            auto& dc = dd.line;
+            ImGui::InputFloat2("Point 1", &dc.ptBegin.x);
+            ImGui::InputFloat2("Point 2", &dc.ptEnd.x);
+            ImGui::ColorEdit4("Color", &dc.color.x);
+            if (ImGui::Button("Draw line")) {
+                glm::vec3 vertices[] = {
+                    glm::vec3(dc.ptBegin.x, dc.ptBegin.y, 0.0f),
+                    glm::vec3(dc.ptEnd.x, dc.ptEnd.y, 0.0f),
+                };
+                RgbaColor color = Conv::ImVec4_To_RgbaColor(dc.color);
+                rasterizer.DrawLine(vertices, color);
+                ::UploadTexture(texture, canvases[drawing].pixels.data(), canvasSize);
+            }
+        }
+        if (ImGui::CollapsingHeader("Triangle")) {
+            auto& dc = dd.triangle;
+            // TODO
         }
     }
 
@@ -223,7 +272,8 @@ struct App::Private {
 };
 
 App::App()
-    : m{ new Private() } {
+    : m{ new Private() } //
+{
     constexpr int kWidth = 640;
     constexpr int kHeight = 320;
 
@@ -255,7 +305,11 @@ void App::Show() {
             m->ShowRendererEditor();
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Model")) {
+        if (ImGui::BeginTabItem("One-offs")) {
+            m->ShowRendererOneOffTools();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Model Scene Setup")) {
             m->ShowModelEditor();
             ImGui::EndTabItem();
         }
@@ -275,7 +329,7 @@ void App::Show() {
 }
 
 void App::RenderFrame() {
-    m->RenderFrame();
+    m->SwapBuffers();
 }
 
 void App::ResizeCanvas(Size2<int> newSize) {

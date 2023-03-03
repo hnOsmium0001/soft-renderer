@@ -40,8 +40,8 @@ public:
     FrameBuffer* framebuffer;
 
 public:
-    FrameBuffer& GetTarget() const;
-    void SetTarget(FrameBuffer& framebuffer);
+    FrameBuffer* GetTarget() const;
+    void SetTarget(FrameBuffer* framebuffer);
 
     void DrawLine(const glm::vec3 vertices[2], RgbaColor color);
 

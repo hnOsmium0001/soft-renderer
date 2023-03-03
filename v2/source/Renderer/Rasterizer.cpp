@@ -42,12 +42,12 @@ void FrameBuffer::SetPixel(glm::ivec2 pos, float z, RgbaColor color) {
     }
 }
 
-FrameBuffer& Rasterizer::GetTarget() const {
-    return *this->framebuffer;
+FrameBuffer* Rasterizer::GetTarget() const {
+    return this->framebuffer;
 }
 
-void Rasterizer::SetTarget(FrameBuffer& framebuffer) {
-    this->framebuffer = &framebuffer;
+void Rasterizer::SetTarget(FrameBuffer* framebuffer) {
+    this->framebuffer = framebuffer;
 }
 
 void Rasterizer::DrawLine(const glm::vec3 vertices[2], RgbaColor color) {
