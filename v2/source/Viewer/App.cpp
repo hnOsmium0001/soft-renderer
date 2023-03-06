@@ -15,7 +15,7 @@
 #include <type_traits>
 
 namespace {
-enum SceneType {
+enum class SceneType {
     Model,
     Triangles,
 };
@@ -57,13 +57,10 @@ void UploadTexture(GLuint texture, const RgbaColor pixels[], Size2<int> size) {
 } // namespace
 
 struct App::Private {
-    std::array<FrameBuffer, 2> canvases;
     FrameBuffer canvas;
     Rasterizer rasterizer;
     Size2<int> canvasSize;
     GLuint texture;
-    int displaying = 0;
-    int drawing = 0 + 1;
     RgbaColor clearColor = RgbaColor(0, 0, 0);
     SceneType currSceneType = SceneType::Model;
 
@@ -74,7 +71,7 @@ struct App::Private {
 
     Private() {
         // Bind initial render target
-        rasterizer.SetTarget(&canvases[drawing]);
+        rasterizer.SetTarget(&canvas);
     }
 
     const ISceneData& GetCurrentScene() const {
@@ -92,8 +89,6 @@ struct App::Private {
     // TODO move the double buffering logic to a separate class dedicated to continuous rendering, this here is just for static demos, no need for such a complex system
 
     void RenderCurrentScene() {
-        auto& canvas = canvases[drawing];
-
         if (clearColorChanged) {
             canvas.ClearColor(clearColor);
         }
@@ -115,13 +110,8 @@ struct App::Private {
         }
     }
 
-    void SwapBuffers() {
-        auto& canvas = canvases[drawing];
-
+    void UploadBuffers() {
         ::UploadTexture(texture, canvas.pixels.data(), canvasSize);
-
-        displaying = (displaying + 1) % canvases.size();
-        drawing = (displaying + 1) % canvases.size();
     }
 
     void ShowRendererEditor() {
@@ -129,7 +119,7 @@ struct App::Private {
             { "Model scene", SceneType::Model },
             { "Triangles scene", SceneType::Triangles },
         };
-        if (ImGui::BeginCombo("Scene", kScenes[currSceneType].name)) {
+        if (ImGui::BeginCombo("Scene", kScenes[(int)currSceneType].name)) {
             for (auto& elm : kScenes) {
                 if (ImGui::Selectable(elm.name, currSceneType == elm.value)) {
                     currSceneType = elm.value;
@@ -143,13 +133,6 @@ struct App::Private {
         }
 
         if (ImGui::TreeNode("Renderer Info")) {
-            ImGui::Text("Buffers: %d", (int)canvases.size());
-            ImGui::Indent();
-            {
-                ImGui::Text("Front buffer: #%d", displaying);
-                ImGui::Text("Back buffer: #%d", drawing);
-            }
-            ImGui::Unindent();
             ImGui::Text("Canvas size: { %d, %d }", canvasSize.width, canvasSize.height);
             ImGui::TreePop();
         }
@@ -164,7 +147,7 @@ struct App::Private {
         bool readyToRender = currScene.IsReady();
         if (ImGui::Button("Render frame", !readyToRender)) {
             RenderCurrentScene();
-            SwapBuffers();
+            UploadBuffers();
         }
         if (!readyToRender) {
             ImGui::SameLine();
@@ -173,6 +156,11 @@ struct App::Private {
     }
 
     struct {
+        struct {
+            RgbaColor clearColor;
+            float clearDepth = 0.0f;
+        } clear;
+
         struct {
             ImVec2 ptBegin;
             ImVec2 ptEnd;
@@ -187,6 +175,17 @@ struct App::Private {
     void ShowRendererOneOffTools() {
         auto& dd = data_ShowRendererOneOffTools;
 
+        if (ImGui::CollapsingHeader("Clear")) {
+            auto& dc = dd.clear;
+            if (ImGui::ColorEdit4("Clear color", &dc.clearColor)) {
+                canvas.ClearColor(dc.clearColor);
+                UploadBuffers();
+            }
+            if (ImGui::InputFloat("Clear depth", &dc.clearDepth)) {
+                canvas.ClearDepth(dc.clearDepth);
+                UploadBuffers();
+            }
+        }
         if (ImGui::CollapsingHeader("Line")) {
             auto& dc = dd.line;
             ImGui::InputFloat2("Point 1", &dc.ptBegin.x);
@@ -199,7 +198,7 @@ struct App::Private {
                 };
                 RgbaColor color = Conv::ImVec4_To_RgbaColor(dc.color);
                 rasterizer.DrawLine(vertices, color);
-                ::UploadTexture(texture, canvases[drawing].pixels.data(), canvasSize);
+                ::UploadTexture(texture, canvas.pixels.data(), canvasSize);
             }
         }
         if (ImGui::CollapsingHeader("Triangle")) {
@@ -301,20 +300,26 @@ App::~App() {
 void App::Show() {
     ImGui::Begin("Renderer Setup");
     if (ImGui::BeginTabBar("##")) {
-        if (ImGui::BeginTabItem("Render")) {
-            m->ShowRendererEditor();
+        if (ImGui::BeginTabItem("Scene")) {
+            if (ImGui::BeginTabBar("##")) {
+                if (ImGui::BeginTabItem("Render")) {
+                    m->ShowRendererEditor();
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Model Scene Setup")) {
+                    m->ShowModelEditor();
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Triangles Scene Setup")) {
+                    m->ShowTriangleEditor();
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("One-offs")) {
             m->ShowRendererOneOffTools();
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("Model Scene Setup")) {
-            m->ShowModelEditor();
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("Triangles Scene Setup")) {
-            m->ShowTriangleEditor();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
@@ -329,12 +334,10 @@ void App::Show() {
 }
 
 void App::RenderFrame() {
-    m->SwapBuffers();
+    m->UploadBuffers();
 }
 
 void App::ResizeCanvas(Size2<int> newSize) {
     m->canvasSize = newSize;
-    for (auto& canvas : m->canvases) {
-        canvas.Resize(newSize);
-    }
+    m->canvas.Resize(newSize);
 }

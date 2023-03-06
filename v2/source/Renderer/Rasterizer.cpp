@@ -36,7 +36,7 @@ RgbaColor FrameBuffer::GetPixel(glm::ivec2 pos) const {
 
 void FrameBuffer::SetPixel(glm::ivec2 pos, float z, RgbaColor color) {
     int idx = pos.y * dimensions.width + pos.x;
-    if (depths[idx] < z) {
+    if (depths[idx] <= z) {
         pixels[idx] = color;
         depths[idx] = z;
     }
