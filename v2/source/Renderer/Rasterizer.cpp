@@ -14,6 +14,7 @@ FrameBuffer::FrameBuffer(Size2<int> dimensions) {
 
 void FrameBuffer::Refresh(const RefreshOp& op) {
     this->dimensions = op.newDim;
+    // TODO resize and retain original content at the same place, like how photoshop Change canvas size works
     pixels.resize(dimensions.Area(), op.color);
     depths.resize(dimensions.Area(), op.depth);
 }

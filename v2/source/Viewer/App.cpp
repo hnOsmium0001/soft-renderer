@@ -7,7 +7,9 @@
 #include "Viewer/Notification.hpp"
 #include "Viewer/Utils.hpp"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <portable-file-dialogs.h>
 #include <algorithm>
 #include <memory>
@@ -25,25 +27,25 @@ public:
     virtual bool IsReady() const = 0;
 };
 
-struct RenderData : public ISceneData {
+struct ModelSceneData : public ISceneData {
+    RgbaColor clearColor = RgbaColor(255, 255, 255);
     Camera camera;
     std::unique_ptr<Mesh> mesh;
 
     std::string meshFilePath;
+    float clearDepth = 0.0f;
 
     virtual bool IsReady() const override {
         return mesh != nullptr;
     }
 };
 
-struct TriangleScene {
+struct TriangleSceneData : public ISceneData {
+    RgbaColor clearColor = RgbaColor(255, 255, 255);
     std::vector<glm::vec3> positions;
     std::vector<RgbaColor> colors;
-};
-
-struct TriangleSceneData : public ISceneData {
-    TriangleScene scene;
     int currentSelectedVertex;
+    float clearDepth = 0.0f;
 
     virtual bool IsReady() const override {
         return true;
@@ -60,18 +62,28 @@ struct App::Private {
     FrameBuffer canvas;
     Rasterizer rasterizer;
     Size2<int> canvasSize;
-    GLuint texture;
-    RgbaColor clearColor = RgbaColor(0, 0, 0);
-    SceneType currSceneType = SceneType::Model;
+    GLuint texture = 0;
 
-    RenderData rd;
+    SceneType currSceneType = SceneType::Model;
+    ModelSceneData rd;
     TriangleSceneData tsd;
 
-    bool clearColorChanged = false;
-
     Private() {
-        // Bind initial render target
+        // Goal of this constructor:
+        // Setup any necessary resources/allocations for the App to function, any default values should be initialized in App::App()
+
         rasterizer.SetTarget(&canvas);
+
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // Even though most drivers permit it, using a texture without initializing it with an image is undefined so we do it here
+        UploadBuffers();
+    }
+
+    ~Private() {
+        glDeleteTextures(1, &texture);
     }
 
     const ISceneData& GetCurrentScene() const {
@@ -86,28 +98,33 @@ struct App::Private {
         return const_cast<ISceneData&>(const_cast<const Private*>(this)->GetCurrentScene());
     }
 
-    // TODO move the double buffering logic to a separate class dedicated to continuous rendering, this here is just for static demos, no need for such a complex system
-
     void RenderCurrentScene() {
-        if (clearColorChanged) {
-            canvas.ClearColor(clearColor);
-        }
-
         switch (currSceneType) {
             case SceneType::Model: {
                 // TODO move rendering to other thread
+                canvas.ClearColor(rd.clearColor);
+                canvas.ClearDepth(rd.clearDepth);
+
                 rasterizer.DrawMesh(rd.camera, *rd.mesh);
             } break;
 
             case SceneType::Triangles: {
-                for (int i = 0, di = 0; i < tsd.scene.positions.size(); ++i, di += 3) {
-                    auto positions = &tsd.scene.positions[i];
-                    auto colors = &tsd.scene.colors[di];
+                canvas.ClearColor(tsd.clearColor);
+                canvas.ClearDepth(tsd.clearDepth);
+
+                for (int i = 0, di = 0; i < tsd.positions.size(); ++i, di += 3) {
+                    auto positions = &tsd.positions[i];
+                    auto colors = &tsd.colors[di];
                     rasterizer.DrawTriangle(positions, colors);
                     i += 3;
                 }
             } break;
         }
+    }
+
+    void ResizeCanvas(Size2<int> newSize) {
+        canvasSize = newSize;
+        canvas.Resize(newSize);
     }
 
     void UploadBuffers() {
@@ -128,17 +145,11 @@ struct App::Private {
             ImGui::EndCombo();
         }
 
-        if (ImGui::ColorEdit3("Clear color", &clearColor)) {
-            clearColorChanged = true;
-        }
-
+        auto& currScene = GetCurrentScene();
         if (ImGui::TreeNode("Renderer Info")) {
             ImGui::Text("Canvas size: { %d, %d }", canvasSize.width, canvasSize.height);
             ImGui::TreePop();
         }
-
-        auto& currScene = GetCurrentScene();
-
         if (ImGui::TreeNode("Scene Info")) {
             // TODO
             ImGui::TreePop();
@@ -157,7 +168,7 @@ struct App::Private {
 
     struct {
         struct {
-            RgbaColor clearColor;
+            RgbaColor clearColor = RgbaColor(255, 255, 255);
             float clearDepth = 0.0f;
         } clear;
 
@@ -208,6 +219,9 @@ struct App::Private {
     }
 
     void ShowModelEditor() {
+        ImGui::ColorEdit4("Clear color", &rd.clearColor);
+        ImGui::InputFloat("Clear depth", &rd.clearDepth);
+
         if (ImGui::Button("Load mesh")) {
             pfd::open_file dialog("Select model file");
             auto result = dialog.result();
@@ -239,6 +253,9 @@ struct App::Private {
     }
 
     void ShowTriangleEditor() {
+        ImGui::ColorEdit4("Clear color", &tsd.clearColor);
+        ImGui::InputFloat("Clear depth", &tsd.clearDepth);
+
         if (tsd.currentSelectedVertex != -1) {
             // TODO
         } else {
@@ -247,13 +264,12 @@ struct App::Private {
 
         ImGui::Begin("Triangles: scene editor");
         {
-            auto& scene = tsd.scene;
             auto dl = ImGui::GetWindowDrawList();
 
             // Render all current triangles
-            for (int i = 0, di = 0; i < scene.positions.size(); ++i, di += 3) {
-                glm::vec3* triangle = &scene.positions[i];
-                RgbaColor* colors = &scene.colors[di];
+            for (int i = 0, di = 0; i < tsd.positions.size(); ++i, di += 3) {
+                glm::vec3* triangle = &tsd.positions[i];
+                RgbaColor* colors = &tsd.colors[di];
 
                 // TODO handle multiple colors?
                 // maybe use ImDrawList:: and vertices
@@ -275,25 +291,12 @@ App::App()
 {
     constexpr int kWidth = 640;
     constexpr int kHeight = 320;
-
-    constexpr int kSize = kWidth * kHeight;
-    auto defaultTextureData = std::make_unique<RgbaColor[]>(kSize);
-    std::fill(
-        defaultTextureData.get(),
-        defaultTextureData.get() + kSize,
-        RgbaColor(255, 255, 255));
-
-    ResizeCanvas({ kWidth, kHeight });
-    glGenTextures(1, &m->texture);
-    glBindTexture(GL_TEXTURE_2D, m->texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kWidth, kHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, defaultTextureData.get());
+    m->ResizeCanvas({ kWidth, kHeight });
+    m->canvas.ClearColor(RgbaColor(255, 255, 255));
+    m->UploadBuffers();
 }
 
 App::~App() {
-    glDeleteTextures(1, &m->texture);
-
     delete m;
 }
 
@@ -327,7 +330,16 @@ void App::Show() {
     ImGui::End();
 
     ImGui::Begin("Renderer Output", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-    ImGui::Image(reinterpret_cast<void*>(m->texture), ImVec2(m->canvasSize.width, m->canvasSize.height));
+    ImVec2 canvasPos = ImGui::GetCursorPos();
+    ImVec2 canvasSize(m->canvasSize.width, m->canvasSize.height);
+    ImGui::Image(reinterpret_cast<void*>(m->texture), canvasSize);
+    ImRect canvasRect(canvasPos, canvasPos + canvasSize);
+    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+        auto mousePos = ImGui::GetMousePos();
+        if (canvasRect.Contains(mousePos)) {
+            // TODO zoom
+        }
+    }
     ImGui::End();
 
     ImGui::ShowNotifications();
@@ -335,9 +347,4 @@ void App::Show() {
 
 void App::RenderFrame() {
     m->UploadBuffers();
-}
-
-void App::ResizeCanvas(Size2<int> newSize) {
-    m->canvasSize = newSize;
-    m->canvas.Resize(newSize);
 }

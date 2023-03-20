@@ -20,5 +20,4 @@ public:
     void Show();
 
     void RenderFrame();
-    void ResizeCanvas(Size2<int> newSize);
 };
