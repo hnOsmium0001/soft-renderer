@@ -4,7 +4,6 @@
 #include "Renderer/Rasterizer.hpp"
 #include "Size.hpp"
 
-#include <glad/glad.h>
 #include <array>
 #include <vector>
 
