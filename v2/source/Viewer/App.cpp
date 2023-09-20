@@ -178,7 +178,7 @@ struct App::Private {
             ImVec4 color;
         } line;
 
-        struct ImVec2 {
+        struct {
 
         } triangle;
     } data_ShowRendererOneOffTools;
