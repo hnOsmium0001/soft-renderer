@@ -1,5 +1,7 @@
 package demo.softrenderer;
 
+import java.util.Arrays;
+
 // Note: packed color stored in ARGB format
 //       AAAAAAAARRRRRRRRGGGGGGGGBBBBBBBB <-- int, 32 bits
 //       \-8bit-/\-8bit-/\-8bit-/\-8bit-/
@@ -21,6 +23,10 @@ public final class Bitmap {
 
     public void setPixel(int x, int y, int packedColor) {
         pixels[y * width + x] = packedColor;
+    }
+
+    public void clear(int packedColor) {
+        Arrays.fill(pixels, packedColor);
     }
 
     public static int getPackedColor(int alpha, int red, int green, int blue) {
