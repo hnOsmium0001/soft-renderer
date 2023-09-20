@@ -10,7 +10,8 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <portable-file-dialogs.h>
+#include <imgui_impl_opengl3_loader.h>
+#include <nfd.h>
 #include <algorithm>
 #include <memory>
 #include <stdexcept>
@@ -223,14 +224,14 @@ struct App::Private {
         ImGui::InputFloat("Clear depth", &rd.clearDepth);
 
         if (ImGui::Button("Load mesh")) {
-            pfd::open_file dialog("Select model file");
-            auto result = dialog.result();
+            nfdchar_t* promptOutPath = nullptr;
+            nfdresult_t promptResult = NFD_OpenDialog(nullptr, nullptr, &promptOutPath);
 
-            if (!result.empty()) {
+            if (promptResult == NFD_OKAY) {
                 auto& mesh = rd.mesh;
                 auto& path = rd.meshFilePath;
 
-                path = std::move(result[0]);
+                path = std::string(promptOutPath);
                 if (!mesh) {
                     mesh = std::make_unique<Mesh>();
                 }
@@ -246,8 +247,10 @@ struct App::Private {
                 if (!exceptionCaught) {
                     ImGui::AddNotification(ImGuiToast(ImGuiToastType_Success, "Successfully loaded model at %s", path.c_str()));
                 }
-            } else {
+            } else if (promptResult == NFD_CANCEL) {
                 ImGui::AddNotification(ImGuiToast(ImGuiToastType_Error, "No path was selected."));
+            } else {
+                ImGui::AddNotification(ImGuiToast(ImGuiToastType_Error, "Error: %s.", NFD_GetError()));
             }
         }
     }
