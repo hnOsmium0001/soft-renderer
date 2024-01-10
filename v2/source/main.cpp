@@ -7,21 +7,54 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_opengl3_loader.h>
+#include <cxxopts.hpp>
+#include <filesystem>
 #include <iostream>
 #include <string>
+#include <string_view>
 
-static void GlfwErrorCallback(int error, const char* description) {
+namespace fs = std::filesystem;
+using namespace std::literals;
+
+namespace {
+void GlfwErrorCallback(int error, const char* description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-int main(int argc, const char* argv[]) {
-    // Assume the first element is the executable name
-    if (argc > 1) {
-        printf("Running in headless mode...\n");
-        // TODO headless mode
-        return 0;
-    }
+struct RenderTask {
+    fs::path inputPath;
+    fs::path outputPath;
+};
 
+struct CliProgramOptions {
+    std::vector<RenderTask> tasks;
+
+    static CliProgramOptions Parse(int argc, const char* argv[]) {
+        cxxopts::Options decl("hnOsmium0001/soft-renderer", "");
+        // clang-format off
+        decl.add_options()
+            ("s,scene", "Scene file (input) to render", cxxopts::value<std::string>())
+            ("o,output", "Output path", cxxopts::value<std::string>());
+        // clang-format on
+        auto result = decl.parse(argc, argv);
+
+        CliProgramOptions opts;
+
+        opts.tasks.push_back(RenderTask{
+            .inputPath = fs::path(result["scene"].as<std::string>()),
+            .outputPath = fs::path(result["output"].as<std::string>()),
+        });
+
+        return opts;
+    }
+};
+
+int CliMain(CliProgramOptions& options) {
+    // TODO
+    return 0;
+}
+
+int GuiMain() {
     if (!glfwInit()) {
         return -1;
     }
@@ -93,4 +126,17 @@ int main(int argc, const char* argv[]) {
     glfwTerminate();
 
     return 0;
+}
+} // namespace
+
+int main(int argc, const char* argv[]) {
+    // Assume the first element is the executable name
+    if (argc > 1) {
+        printf("Running in headless mode...\n");
+
+        auto opts = CliProgramOptions::Parse(argc, argv);
+        return CliMain(opts);
+    } else {
+        return GuiMain();
+    }
 }
